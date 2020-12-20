@@ -165,4 +165,78 @@
 
 ### Improved
 
-- Rewrite the cache system to be more efficien
+- Rewrite the cache system to be more efficient and convenient. See #726 for details.
+- Less allocations. #728
+
+## [0.27] 2021-07-22
+
+### Added
+
+- Add a new provider `recent_files` for recent files history, which is persistent and can keep up to 10,000 entries ordered by [Frecency](https://en.wikipedia.org/wiki/Frecency). #724
+
+### Fixed
+
+- Fix rg 13.0.0 does not work for neovim. #711
+- Fix grep2 does not work on Windows. #533
+
+### Improved
+
+- Support passing the cursor position instead of full cursor line from Vim to Rust since the performance of Vim is pretty bad when the cursor line is extremely long. #719
+
+## [0.26] 2021-06-15
+
+### Added
+
+- [neovim] Add zindex option to fix the tricky floating_win overlapping, and add border for the preview window, use `let g:clap_popup_border = 'nil'` to disable the order. #693
+- Impl preview for `quickfix` provider. #691
+- Impl `preview/file` for easier external async preview integration. #706
+
+### Changed
+
+- Now `g:clap_provider_grep_enable_icon` is initialized using `g:clap_enable_icon`. #701
+
+### Fixed
+
+- Handle the non-utf8 line of rg's output properly. #673
+- [neovim] Fix the action dialog creation using floating_win. #688
+- Fix the indicator winwidth is not flexible. #687
+- Fix the icon offset when restoring the full display line for grep provider. #701
+- Fix the Pyo3 compilation on M1. #707
+- Add icon for `*.tex`. #709
+
+### Perf
+
+- Use faster simdutf8. #681
+
+## [0.25] 2021-04-25
+
+### Added
+
+- Add `dumb_jump` provider, which will fall back to the normal grep way when the regexp approach fails. #659
+
+### Internal change
+
+- Move `stdio_server` crate into a module of `maple_cli` crate for reusing the utilities in `maple_cli` easily.
+
+### Fixed
+
+- Force using sync impl for the providers's `source_type` that is list type. #672
+
+## [0.24] 2021-03-13
+
+### Added
+
+- Add user autocmd `ClapOnInitialize`, can be used to ignore some buffers when opening clap. #653
+- Add `g:clap_provider_colors_ignore_default` to ignore the default colors in `VIMRUNTIME`. #632
+- Support neovim floating_win based action menu. #655
+
+### Improved
+
+- Truncate the lines of `grep` provider. #650
+- Support unordered substring query. #652
+- Add `hi default link ClapIndicator ClapInput` for the default theme.
+
+### Fixed
+
+- Cannot open files with pipe in file path. #643
+- Fix the grep preview when `g:clap_enable_icon` is enabl

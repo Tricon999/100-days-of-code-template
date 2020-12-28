@@ -239,4 +239,45 @@
 ### Fixed
 
 - Cannot open files with pipe in file path. #643
-- Fix the grep preview when `g:clap_enable_icon` is enabl
+- Fix the grep preview when `g:clap_enable_icon` is enabled and `g:clap_provider_grep_enable_icon` is disabled. #648
+- Reset the old selections when the input changes. #646
+- Make customize the icon easier. #392
+
+### Changed
+
+- Remove some colors close the white color in the default value of `g:clap_fuzzy_match_hl_groups`.
+
+## [0.23] 2021-02-16
+
+### Added
+
+- Add `g:clap_force_matchfuzzy` to use the builtin `matchfuzzy()` when filtering in sync way. #607
+- Add `g:clap_force_python` to always use the Python sync filter as some improvements are only implemented on the Rust side and you need the Python dynamic module to use that. #614
+- Support `+name-only` for Lua sync filter. #612
+- Add `g:ClapProviderHistoryCustomFilter` for customizing the source of `history` provider. #615
+- Add a bonus for the match in the filename when the source item is a path, but you can only have this when you are using Python dynamic module or the Rust backend. #614.
+- Add a bonus for the files you opened since you enter vim. #622
+- Add async preview support for `help_tags` provider, the Rust binary is required. #630
+- ~~Add `g:clap_always_open_preview` to open the preview always if the provider impls `on_move_async`~~(See `g:clap_open_preview`), it's on by the default which changes the behavior before. #625
+- Add `g:clap_preview_direction` for opening the preview window on the right of the display window, and the default behavior has been changed to `LR` if your screen's `columns` is less than 80. #634
+- Add `g:clap_open_preview` to control the opening of preview window, you can set it to `never` to fully disable the preview feature. #636
+
+### Fixed
+
+- Add `--color=never` to the default grep option. #609
+- Show create new file entry when in empty directory. #624
+
+### Internal
+
+- Introduce `MatchText` for passing more match context easier later. #626
+
+## [0.22] 2021-01-01
+
+### Added
+
+- Add `g:clap_enable_background_shadow` to render a transparent shadow (neovim-only) #546, #550
+- Add `g:clap_popup_move_manager` so that Vim users can override the default mappings easily. #536
+- Allow user to always download the prebuilt binary. #531
+- Support smartcase fitlering for fzy algo and it's the default behavior. #541 @romgrk
+- Add initial support for fzy lua, neovim-nightly or vim compiled with lua is required. #599
+- Add the providers defined via global variable into the `providers` provider, which means you can see the global variable type providers when you call `:Cl

@@ -280,4 +280,58 @@
 - Allow user to always download the prebuilt binary. #531
 - Support smartcase fitlering for fzy algo and it's the default behavior. #541 @romgrk
 - Add initial support for fzy lua, neovim-nightly or vim compiled with lua is required. #599
-- Add the providers defined via global variable into the `providers` provider, which means you can see the global variable type providers when you call `:Cl
+- Add the providers defined via global variable into the `providers` provider, which means you can see the global variable type providers when you call `:Clap` now. But you have to define `description` explicitly otherwise they won't be found. #605
+  ```vim
+  let g:clap_provider_tasks = {
+            \ 'source': function('TaskListSource'),
+            \ 'sink': function('TaskListSink'),
+            \ 'description': 'List various tasks',
+            \ }
+  ```
+
+### Improved
+
+- Command provider has a better rendering and let's the user add arguments #570
+- Fix the sluggish of vim when the preview lines are awfully long. #543
+
+### Fixed
+
+- Fix the installer on Windows. #529 @Grueslayer
+- Fix the condition of vim8 job exists or not. #566
+- Add the missing `ClapOnExit` for `g:clap_open_action` operation. #576
+
+### Improved
+
+- Keybindings for `filer`: `<CR>` now expands directory instead of editing it
+- Make the grep opts work as normal in the command line. #595
+
+## [0.21] 2020-09-27
+
+### Added
+
+- New shortcut for `+no-cache`, `:Clap files!` is equivalent to `:Clap!! files` and `:Clap files +no-cache`. ([#509](https://github.com/liuchengxu/vim-clap/pull/509))
+- Add `g:clap_enable_debug`, useful when you find vim-clap is problematic and want to debug vim-clap.
+
+### Improved
+
+- The open action `ctrl-t`, `ctrl-v`, `ctrl-t` now supports the multiple files. ([#496](https://github.com/liuchengxu/vim-clap/issues/496))
+- Check if the ctags has the JSON output feature. ([#491](https://github.com/liuchengxu/vim-clap/issues/491))
+
+### Fixed
+
+- Fix `:Clap install-binary` does not work correctly on Windows. ([#494](https://github.com/liuchengxu/vim-clap/pull/494)) @Bakudankun
+- Fix [#306](https://github.com/liuchengxu/vim-clap/issues/306), note the signature of `bs_action` are different between vim and neovim now. ([#503](https://github.com/liuchengxu/vim-clap/pull/503))
+- Fix filer issue on Windows [#370](https://github.com/liuchengxu/vim-clap/issues/370). @Grueslayer
+- Handle the maple error in the filer provider, fix [#500](https://github.com/liuchengxu/vim-clap/issues/500), [#501](https://github.com/liuchengxu/vim-clap/issues/501).
+- Fix regression #513
+- Fix #515
+- Fix #517
+- Fix #526
+
+## [0.20] 2020-08-06
+
+### Added
+
+- Python dynamic module now can be compiled using stable Rust. ([#471](https://github.com/liuchengxu/vim-clap/pull/471))
+- Add `windows` preview support. ([#473](https://github.com/liuchengxu/vim-clap/pull/473))
+- Impl `commits` and `bcommits` provider. ([#477](https://github.com/liuchengxu/vim-clap/pull/477)) @ray-

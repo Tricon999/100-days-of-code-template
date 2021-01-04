@@ -334,4 +334,61 @@
 
 - Python dynamic module now can be compiled using stable Rust. ([#471](https://github.com/liuchengxu/vim-clap/pull/471))
 - Add `windows` preview support. ([#473](https://github.com/liuchengxu/vim-clap/pull/473))
-- Impl `commits` and `bcommits` provider. ([#477](https://github.com/liuchengxu/vim-clap/pull/477)) @ray-
+- Impl `commits` and `bcommits` provider. ([#477](https://github.com/liuchengxu/vim-clap/pull/477)) @ray-x
+- Add new provider property `on_move_async`. ([#481](https://github.com/liuchengxu/vim-clap/pull/481))
+- Support expanding `%` now, e.g., `:Clap files %:p:h`.
+- Build static Rust binary for Linux. [#469](https://github.com/liuchengxu/vim-clap/issues/469)
+
+### Fixed
+
+- Fix `history` provider `open_action` support. ([#474](https://github.com/liuchengxu/vim-clap/pull/474))
+
+### Changed
+
+- Remove `noautocmd` when closing neovim's floating win for clap. [#472](https://github.com/liuchengxu/vim-clap/issues/472)
+
+## [0.19] 2020-06-28
+
+### Added
+
+- Add `clap#run(provider)` which is similar to `fzf#run()`. The argument `provider` is a Dict like `g:clap_provider_foo` with an optional extra field specifying the provider id. It can used for adhoc running, don't use it with a `source` that probably has a fair mount of items as it's normally undeveloped in performance. [#433](https://github.com/liuchengxu/vim-clap/issues/433)
+- Impl async preview for `git_files` and `history` provider.
+
+### Improved
+
+- Make the indicator winwidth a bit adpative when using the `relative` layout.
+- Ensure the sign always visiable when running maple via job.
+
+### Fixed
+
+- Fixed the win contexted `execute()` for `jumps` and `marks` provider when clap window is not yet visible.
+
+## [0.18] 2020-06-09
+
+### Improved
+
+- Try loading the clap theme having a same name with the current colorscheme when `g:clap_theme` does not exist.
+
+### Added
+
+- Implement async preview for `blines`, `tags` and `proj_tags` provider. ([#457](https://github.com/liuchengxu/vim-clap/pull/457))
+- Add icon support for `proj_tags` provider. ([#461](https://github.com/liuchengxu/vim-clap/pull/461))
+- Add `g:clap_preview_size` for configuring the number of preview lines. ([#444](https://github.com/liuchengxu/vim-clap/pull/444))
+- Add `g:clap_provider_buffers_cur_tab_only`. ([#439](https://github.com/liuchengxu/vim-clap/pull/439))
+
+### Fixed
+
+- Fix the the command of `job_start` with vanila vim. [#449](https://github.com/liuchengxu/vim-clap/issues/449)
+- Implement the `VimResized` hook. [#454](https://github.com/liuchengxu/vim-clap/issues/454)
+
+## [0.17] 2020-05-25
+
+### Fixed
+
+- Fix the `sink*` args in `selection.vim`, convert the truncated lines to the original full lines.
+
+## [0.16] 2020-05-21
+
+### Added
+
+- Add `g:clap_provider_yanks_history`. ([#438](https://github.com/liuchengxu

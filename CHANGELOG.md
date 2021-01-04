@@ -391,4 +391,45 @@
 
 ### Added
 
-- Add `g:clap_provider_yanks_history`. ([#438](https://github.com/liuchengxu
+- Add `g:clap_provider_yanks_history`. ([#438](https://github.com/liuchengxu/vim-clap/pull/438))
+- Async `on_move` impl for `filer`, `files`, `grep` and `grep2` provider in Rust binary, no delay for the preview function. ([#437](https://github.com/liuchengxu/vim-clap/pull/437))
+
+### Changed
+
+- Decrease the max number of candidates for running in sync from 100000 to 30000, which means once the total number of candidates is larger than 30000, the async filter will be used, otherwise use the builtin sync one.
+- `filer` uses the daemon job which requires the latest binary. Download the latest binary if you uses the prebuilt binary.
+
+### Improved
+
+- Add cmdline completion for all the autoloaded providers. [#429](https://github.com/liuchengxu/vim-clap/issues/429)
+- Run the spinner for dyn filter. [#430](https://github.com/liuchengxu/vim-clap/issues/430)
+
+## [0.15] 2020-05-02
+
+### Added
+
+- Support substring matcher for dyn filter, used when the query contains space. ([#411](https://github.com/liuchengxu/vim-clap/pull/411))
+- Add progress bar support for the download feature of maple. ([#419](https://github.com/liuchengxu/vim-clap/pull/419))
+- Add instructions for building the Rust binary via Docker in case of some users run into the libssl error when using the prebuilt binary, see more info in [INSTALL.md](./INSTALL.md).
+
+### Fixed
+
+- Reset handler state. (#418)
+
+## [0.14] 2020-04-25
+
+### Added
+
+- Add new `check-release` command, you can use `maple check-release --download` to download the latest release binary to `bin` directory. And `:Clap install-binary!` will run this command when possible. ([#410](https://github.com/liuchengxu/vim-clap/pull/410))
+
+### Fixed
+
+- When cmd in `job(cmd)` is a String, the path containing spaces could be problematic on Windows(GVim). Use List instead. ([#407](https://github.com/liuchengxu/vim-clap/pull/407))
+- The positions of matched items in Rust fzy implementation `extracted_fzy` crate is incorrect. The pure Python fzy impl is consistent with the original fzy C implementation. ([#409](https://github.com/liuchengxu/vim-clap/pull/409))
+
+## [0.13] 2020-04-20
+
+### Added
+
+- New provider `:Clap proj_tags` for project-wide tags.([#391](https://github.com/liuchengxu/vim-clap/pull/391))
+- Allow `:Clap files +name-only` to filter the file name only instead of the full file path. Require you have built the Python dynamic module or uses in the cached mode. ([#38

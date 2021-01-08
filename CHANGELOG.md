@@ -432,4 +432,51 @@
 ### Added
 
 - New provider `:Clap proj_tags` for project-wide tags.([#391](https://github.com/liuchengxu/vim-clap/pull/391))
-- Allow `:Clap files +name-only` to filter the file name only instead of the full file path. Require you have built the Python dynamic module or uses in the cached mode. ([#38
+- Allow `:Clap files +name-only` to filter the file name only instead of the full file path. Require you have built the Python dynamic module or uses in the cached mode. ([#389](https://github.com/liuchengxu/vim-clap/pull/389))
+- Add provider `action` property, you can delete the buffer in `:Clap buffers` using the action dialog triggered by `<S-Tab>`. ([#396](https://github.com/liuchengxu/vim-clap/pull/396))
+
+### Improved
+
+- List all the autoloaded providers instead of the builtin ones in `:Clap providers`.
+- Handle the icon highlight offset on Python and Rust side.
+
+### Changed
+
+- Now `:Clap tags` will filter the tag name column only, same with `:Clap proj_tags`.
+- Change truncated dots from `...` to `..` for displaying one more useful char.
+
+### Fixed
+
+- Fix installer on Windows and some other job related issues. Thanks to @TissueFluid. ([#405](https://github.com/liuchengxu/vim-clap/pull/405))
+- Add default value when `ClapSearchText` highlight group misses some attributes. #390
+- The final result of dyn filter is not ordered, ref https://github.com/liuchengxu/vim-clap/pull/385#issuecomment-611616792 .
+- Make use of command line `--winwidth` option, fix the unsuitable truncation for long matched lines.
+
+## [0.12] 2020-04-12
+
+### Added
+
+- Add `--content-filtering` in maple. You can use `:Clap files +name-only ~` to filter the file name instead of full file path, but you can only use it when clap is using the cached tempfile inside vim.
+
+### Improved
+
+- icon highlight for truncated grep text.
+
+### Changed
+
+- `grep2` will not match the file path by default. ([#385](https://github.com/liuchengxu/vim-clap/pull/385))
+
+### Fixed
+
+- `ITEMS_TO_SHOW` is fixed at the moment, only 30 rows can be shown correctly for dyn filter. https://github.com/liuchengxu/vim-clap/pull/385#issuecomment-611601076
+- Fix wrong icon for dyn filter when the text is truncated.
+
+## [0.11] 2020-04-09
+
+### Added
+
+- New provider `:Clap grep2` with cache and dynamic refresh support. `grep2` is much faster than the previous `grep` provider as it'll reuse the cached contents from previous run and do the filtering with dynamic results. `grep2` is not a typical grep tool but a fuzzy filter tool, for it tries to collect all the output and then filtering on the results. `grep` is merely to dispatch the rg command and show the results returned by rg directly, no fuzzy filter actually. ([#383](https://github.com/liuchengxu/vim-clap/pull/383))
+
+- Double bang version of `:Clap!!`, shortcut for `:Clap [provider_id_or_alias] +no-cache`, e.g., `:Clap!! files ~` is same to `:Clap files +no-cache ~`.
+
+### 

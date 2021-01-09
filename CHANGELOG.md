@@ -479,4 +479,37 @@
 
 - Double bang version of `:Clap!!`, shortcut for `:Clap [provider_id_or_alias] +no-cache`, e.g., `:Clap!! files ~` is same to `:Clap files +no-cache ~`.
 
-### 
+### Changed
+
+- Change `ITEMS_TO_SHOW` from `100` to 30, `UPDATE_INTERVAL` from 200ms to 300ms. A normal screen can only show about 50 rows, 30 rows should look like the same to 100 rows as the default clap window size is 1/3 of the screen height, but it reduces the overhead of communication between vim and maple significantly.
+- Add `using_cache` status to `g:clap_forerunner_status_sign`, the default sign is `*`, which indicates clap is using the cached file which could be outdated. Use `+no-cache` to run without cache and also rebuild the cache accordingly, e.g., `:Clap files +no-cache /`.
+- The cache directory name changed to `vim.clap` from `clap_cache` in your system `temp_dir`.
+
+### Improved
+
+- [perf]Try using the cached file when rerunning the same command under the same directory. The cache directory uses https://doc.rust-lang.org/std/env/fn.temp_dir.html which will be purged when you restart the computer. Or you can use `maple cache --list` to list the current cached info.
+
+### Fixed
+
+- `has('gui_running')` does not work for neovim. [#378](https://github.com/liuchengxu/vim-clap/issues/378)
+- Wrong Vim job stop API usage.([#377](https://github.com/liuchengxu/vim-clap/pull/377))
+- https://github.com/liuchengxu/vim-clap/issues/371#issuecomment-610176970
+- The postponed preview action can be triggered when the main window is closed. #382
+
+## [0.10] 2020-04-04
+
+### Added
+
+- Add `init` for `Clap grep`, fill the content when query is empty for git repo.([#347](https://github.com/liuchengxu/vim-clap/pull/347))
+- Add `g:clap_popup_border` for adding the border for the preview popup. ([#349](https://github.com/liuchengxu/vim-clap/pull/349))
+
+### Improved
+
+- Print a note about Rust nightly is requred for building the Python dynamic module.
+- Refine the syntax of `Clap lines` with `ClapLinesBufname` and `ClapLinesNumber` group added.
+- [perf] Use const table instead of `lazy_static` for the icons, [more info](https://github.com/liuchengxu/vim-clap/pull/354#discussion_r395975392). Thanks to @ImmemorConsultrixContrarie .
+- [perf] Major improvement :tada: support the filter dynamic support, contribution by @ImmemorConsultrixContrarie. ([#364](https://github.com/liuchengxu/vim-clap/pull/364))
+
+### Fixed
+
+- `Clap filer` always selects the first entry when you narrow down and navigate the list. ([#348](https://github.com/liuchengxu/vim-clap/issues/34

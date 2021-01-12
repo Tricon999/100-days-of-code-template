@@ -512,4 +512,37 @@
 
 ### Fixed
 
-- `Clap filer` always selects the first entry when you narrow down and navigate the list. ([#348](https://github.com/liuchengxu/vim-clap/issues/34
+- `Clap filer` always selects the first entry when you narrow down and navigate the list. ([#348](https://github.com/liuchengxu/vim-clap/issues/348))
+
+## [0.9] 2020-03-10
+
+### Added
+
+- Support multi-byte input for vim's popup thanks to @Bakudankun. You need patch 8.2.0329 to make it work as expected. ([#320](https://github.com/liuchengxu/vim-clap/pull/320))
+- Add new option `g:clap_insert_mode_only` to disable the feature of other mode, use the insert mode only. ([#335](https://github.com/liuchengxu/vim-clap/pull/335))
+- Add new option `g:clap_providers_relaunch_code`(`@@` default). You can input `@@` or use <kbd>C-L</kbd> to invoke `:Clap` to reselect another provider at any time.([#328](https://github.com/liuchengxu/vim-clap/pull/328))
+- Add new keymapping <kbd>C-L</kbd>.([#328](https://github.com/liuchengxu/vim-clap/pull/328))
+- Add preview support for `Clap filer`.
+- Add `blines` subcommand in maple for always prepending the line number even there are 1M+ lines.
+
+### Improved
+
+- Now you can use `:Clap grep ++query=@visual` to search the visual selection. ([#336](https://github.com/liuchengxu/vim-clap/pull/336))
+- Ensure the long matched elements from the filter always at least partially visible. ([#330](https://github.com/liuchengxu/vim-clap/pull/330))
+- Use file name as the preview header for `Clap grep`, `Clap blines`, `Clap tags`, `Clap marks` and `Clap jumps`.
+- Make `<Del>` work in vim's popup.
+
+### Changed
+
+- Change the default value of `g:clap_popup_cursor_shape` from `'|'` to `''` for using the new block-style cursor in vim's popup By @Bakudankun. ([#340](https://github.com/liuchengxu/vim-clap/pull/340))
+
+## [0.8] 2020-02-21
+
+### Added
+
+- Add new clap theme `let g:clap_theme = 'atom_dark'` by @GoldsteinE.
+- Add new provider `:Clap search_history` by @markwu. ([#289](https://github.com/liuchengxu/vim-clap/pull/289))
+- Add new provider `:Clap maps` by @markwu. ([#293](https://github.com/liuchengxu/vim-clap/pull/293))
+- Add `g:clap_project_root_markers` for specifing how vim-clap intentify a project root. Previously only the git-based project is supported, i.e., `g:clap_project_root_markers = ['.git', '.git/']`. The default value of `g:clap_project_root_markers` is `['.root', '.git', '.git/']` you can add `.root` file under the directory you want to the project root.([#290](https://github.com/liuchengxu/vim-clap/pull/290))
+- Add preview support for `yanks`, `buffers`, `files`, `git_files` and `history` provider.
+- Add new highlight group `ClapSelectedSign` and `ClapCurrentSelectionSign` f

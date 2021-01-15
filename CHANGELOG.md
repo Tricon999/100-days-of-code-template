@@ -545,4 +545,39 @@
 - Add new provider `:Clap maps` by @markwu. ([#293](https://github.com/liuchengxu/vim-clap/pull/293))
 - Add `g:clap_project_root_markers` for specifing how vim-clap intentify a project root. Previously only the git-based project is supported, i.e., `g:clap_project_root_markers = ['.git', '.git/']`. The default value of `g:clap_project_root_markers` is `['.root', '.git', '.git/']` you can add `.root` file under the directory you want to the project root.([#290](https://github.com/liuchengxu/vim-clap/pull/290))
 - Add preview support for `yanks`, `buffers`, `files`, `git_files` and `history` provider.
-- Add new highlight group `ClapSelectedSign` and `ClapCurrentSelectionSign` f
+- Add new highlight group `ClapSelectedSign` and `ClapCurrentSelectionSign` for the sign `texthl`, they are linked to `WarningMsg` by default.
+- Add multi-selection support for `:Clap blines`.
+- [neovim] normal mappings: j/k, gg/G, `<C-d>`/`<C-u>` and see `ftplugin/clap_input.vim`.
+
+### Improved
+
+- Add `ClapDefaultPreview` for the light theme.
+- Open quickfix window at the exact size of entries if there are only a few ones.
+
+### Fixed
+
+- The minimal requred version for neovim is v0.4.2 as v0.4.0 does not work.
+- More robust fpath detection for grep preview.[#321](https://github.com/liuchengxu/vim-clap/issues/321)
+
+### Changed
+
+- Add `<nowait>` to neovim's open action mappinngs.
+- Change the default icon for `filer` to  .
+- Set `&foldcoloumn` to 0 for neovim by default.
+- Decrease the default `g:clap_popup_input_delay` from 200ms to 100ms, use the Rust binary.
+- Update `clap_tags` syntax due to https://github.com/liuchengxu/vista.vim/pull/231.
+- Use a standalone floating win instead of virtual text for the matches count.([#315](https://github.com/liuchengxu/vim-clap/pull/315))
+- [neovim] `<Esc>` won't exit clap but enter the normal mode.[#322](https://github.com/liuchengxu/vim-clap/issues/322)
+
+## [0.7] 2020-01-31
+
+### Added
+
+- Add new provider `:Clap filer` for ivy-like file explorer, this also introduces a new type of clap provider: stdio-based RPC provider. ([#272](https://github.com/liuchengxu/vim-clap/pull/272))
+- Add new provider `:Clap help_tags` by @markwu. ([#248](https://github.com/liuchengxu/vim-clap/pull/248))
+- Add `maple version` to get the detailed maple info and include it in `:Clap debug`.([#262](https://github.com/liuchengxu/vim-clap/pull/262))
+- Add `g:clap_forerunner_status_sign` and deprecate `g:clap_forerunner_status_sign_done` and `g:clap_forerunner_status_sign_running`.
+- Support skim as the external filter, ref https://github.com/lotabout/skim/issues/225 . ([#269](https://github.com/liuchengxu/vim-clap/pull/269))
+- Add a new property `source_type` for non-pure-async provider.([#270](https://github.com/liuchengxu/vim-clap/pull/270))
+- Add `g:ClapPrompt` which is Funcref to give more control of the prompt of clap, please see https://github.com/liuchengxu/vim-clap/issues/134#issuecomment-578503522 for the usage.([#265](https://github.com/liuchengxu/vim-clap/pull/265))
+- Add `init` property for each provider, which will be invoked when initializing the display window.([#280](https://github.com/liuchengxu/vim-clap/p

@@ -668,4 +668,49 @@ The major feature of 0.3 is the performance problem has been soloved, see [#140]
 - New provider `:Clap git_diff_files` by @kit494way.
 - Add the preview support for `:Clap registers`. If the content of some register is too much to fit on one line, then it will be shown in the preview window, otherwise do nothing.
 - Add the preview support for `:Clap tags`.
-- Add the helper function for building Rust extension easily. Now you can use `:call clap#helper#build_all()` to build the optional Rust 
+- Add the helper function for building Rust extension easily. Now you can use `:call clap#helper#build_all()` to build the optional Rust dependency.
+- Make the built-in fuzzy filter 10x faster using Rust.([#147](https://github.com/liuchengxu/vim-clap/pull/147))
+
+### Improved
+
+- Cache the result of forerunner job into a temp file if it's larger than the threshold of built-in sync filter can handle.([#177](https://github.com/liuchengxu/vim-clap/pull/177))
+- Decrease the overhead of async job significantly.([#181](https://github.com/liuchengxu/vim-clap/pull/181))
+- Set `syntax` instead of `filetype` for the highlight as setting `filetype` can start some unexpected filetype related services.
+
+### Fixed
+
+- Fix vim popup sign not showing.([#141](https://github.com/liuchengxu/vim-clap/pull/141))
+- Fix performance issue of async job.([#140](https://github.com/liuchengxu/vim-clap/issues/140))
+- Fix rff can't work on Windows thanks to @ImmemorConsultrixContrarie.([#180](https://github.com/liuchengxu/vim-clap/pull/180))
+
+## [0.2] 2019-12-10
+
+### Added
+
+- New provider `:Clap registers`.
+- New provider `:Clap command`.
+- Add a brief description for each provider used in `:Clap`.
+- Add syntax for `:Clap jumps`.
+- Add the option `g:clap_spinner_frames`.
+- Add the option `g:clap_prompt_format`.
+- Add the option `g:clap_enable_icon` for configuring the icon functionality globally.
+- Add the option `g:clap_popup_cursor_shape` for configuring the mocked cursor shape.
+- Add the options `g:clap_fuzzy_match_hl_groups` for configuring the color of fuzzy matched items easier.
+- Add an utility function `clap#helper#build_maple()` for building maple easily in vim. Use `:call clap#helper#build_maple()` to install maple inside vim.
+- Add the preview support for `:Clap grep`.
+- Add the preview support for `:Clap blines`.
+- Support running from any specified directory by passing it via the last argument for `:Clap files` and `:Clap grep`.
+- Add limited fzf like search syntax([#127](https://github.com/liuchengxu/vim-clap/issues/127)) for `:Clap grep`.([#150](https://github.com/liuchengxu/vim-clap/issues/150))
+
+### Changed
+
+- Put `call g:clap.provider.on_exit()` just before `silent doautocmd <nomodeline> User ClapOnExit` in `clap#_exit()`.
+
+### Improved
+
+- Reverse the original order of `jumps` to make the newer jump appear first.
+
+### Fixed
+
+- sink of `:Clap command_history`.([#109](https://github.com/liuchengxu/vim-clap/issues/109))
+- Apply `redraw` when navigating and selecting via 

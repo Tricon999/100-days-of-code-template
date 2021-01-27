@@ -763,4 +763,9 @@ Various fixes.
 - Rename `g:clap_selected_sign_definition` to `g:clap_selected_sign`.
 - Rename `g:clap_current_selection_sign_definition` to `g:clap_current_selection_sign`.
 - Rename `g:clap_disable_run_from_project_root` to `g:clap_disable_run_rooter`.
-- `:Clap
+- `:Clap grep <cword>` is changed to `:Clap grep ++query=<cword>`.
+- Rework `g:clap.context` and `g:clap.provider.args`.
+
+### Removed
+
+## [First being published] 2019-09-28

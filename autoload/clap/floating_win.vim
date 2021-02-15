@@ -85,4 +85,80 @@ endfunction
 function! g:clap#floating_win#display.shrink_if_undersize() abort
   if !clap#preview#is_always_open()
     let opts = nvim_win_get_config(s:display_winid)
-    if g:cl
+    if g:clap.display.line_count() < s:display_opts.height
+      let opts.height = g:clap.display.line_count()
+    else
+      let opts.height = s:display_opts.height
+    endif
+    call nvim_win_set_config(s:display_winid, opts)
+    call s:try_adjust_preview()
+  endif
+endfunction
+
+function! g:clap#floating_win#display.shrink() abort
+  if !clap#preview#is_always_open()
+    let height = g:clap.display.line_count()
+    let opts = nvim_win_get_config(s:display_winid)
+    if opts.height != height
+      let opts.height = height
+      call nvim_win_set_config(s:display_winid, opts)
+      call s:try_adjust_preview()
+    endif
+  endif
+endfunction
+
+function! s:set_minimal_buf_style(bufnr, filetype) abort
+  call setbufvar(a:bufnr, '&filetype', a:filetype)
+  call setbufvar(a:bufnr, '&signcolumn', 'no')
+  call setbufvar(a:bufnr, '&foldcolumn', 0)
+endfunction
+
+function! s:get_config_border_left() abort
+  let opts = nvim_win_get_config(s:display_winid)
+  let opts.row -= 1
+  let opts.width = s:symbol_width
+  let opts.height = 1
+  let opts.focusable = v:false
+  if s:has_nvim_0_5
+    let opts.zindex = 1000
+  endif
+  return opts
+endfunction
+
+function! s:open_win_border_left() abort
+  if s:symbol_width > 0
+    if !nvim_buf_is_valid(s:symbol_left_bufnr)
+      let s:symbol_left_bufnr = nvim_create_buf(v:false, v:true)
+    endif
+    silent let s:symbol_left_winid = nvim_open_win(s:symbol_left_bufnr, v:false, s:get_config_border_left())
+    call setwinvar(s:symbol_left_winid, '&winhl', 'Normal:ClapSymbol')
+    call s:set_minimal_buf_style(s:symbol_left_bufnr, 'clap_spinner')
+    call setbufline(s:symbol_left_bufnr, 1, s:symbol_left)
+  endif
+endfunction
+
+function! s:get_config_spinner() abort
+  let opts = nvim_win_get_config(s:display_winid)
+  let opts.col += s:symbol_width
+  let opts.row -= 1
+  let opts.width = clap#spinner#width()
+  let opts.height = 1
+  let opts.focusable = v:false
+  if s:has_nvim_0_5
+    let opts.zindex = 1000
+  endif
+  return opts
+endfunction
+
+function! g:clap#floating_win#spinner.open() abort
+  if exists('s:spinner_winid') && nvim_win_is_valid(s:spinner_winid)
+    return
+  endif
+  if !nvim_buf_is_valid(s:spinner_bufnr)
+    let s:spinner_bufnr = nvim_create_buf(v:false, v:true)
+    let g:clap.spinner.bufnr = s:spinner_bufnr
+  endif
+  silent let s:spinner_winid = nvim_open_win(s:spinner_bufnr, v:false, s:get_config_spinner())
+
+  call setwinvar(s:spinner_winid, '&winhl', 'Normal:ClapSpinner')
+  call s:set_minimal_buf_style(s:spinner_bufnr, 'clap_s

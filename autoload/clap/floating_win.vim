@@ -229,4 +229,79 @@ function! g:clap#floating_win#input.open() abort
   call setwinvar(s:input_winid, 'airline_disable_statusline', 1)
   call setbufvar(s:input_bufnr, 'coc_suggest_disable', 1)
   " Disable the auto-pairs plugin
-  call setbufvar(s:input_bufnr, 'coc_pairs_disabled', ['"', "'", '(', ')', '<', '>', '[', ']
+  call setbufvar(s:input_bufnr, 'coc_pairs_disabled', ['"', "'", '(', ')', '<', '>', '[', ']', '{', '}', '`'])
+  call setbufvar(s:input_bufnr, 'autopairs_loaded', 1)
+  call setbufvar(s:input_bufnr, 'autopairs_enabled', 0)
+  call setbufvar(s:input_bufnr, 'pear_tree_enabled', 0)
+  " Set filetype explicitly so that the plugins like vim-polyglot won't attempt to detect it incorrectly.
+  call setbufvar(s:input_bufnr, '&filetype', 'clap_input')
+  call setwinvar(s:input_winid, '&spell', 0)
+  call setwinvar(s:input_winid, '&cursorline', 0)
+  let g:clap.input.winid = s:input_winid
+endfunction
+
+function! s:get_config_shadow() abort
+  let opts =  {
+  \ 'relative': 'editor',
+  \ 'style': 'minimal',
+  \ 'width': &columns,
+  \ 'height': &lines,
+  \ 'row': 0,
+  \ 'col': 0,
+  \ }
+  return opts
+endfunction
+
+function! s:open_shadow_win() abort
+  if exists('s:shadow_winid') && nvim_win_is_valid(s:shadow_winid)
+    return
+  endif
+  if !nvim_buf_is_valid(s:shadow_bufnr)
+    let s:shadow_bufnr = nvim_create_buf(v:false, v:true)
+  endif
+  silent let s:shadow_winid = nvim_open_win(s:shadow_bufnr, v:true, s:get_config_shadow())
+  call setwinvar(s:shadow_winid, '&winhl', s:shadow_winhl)
+  call setwinvar(s:shadow_winid, '&winblend', g:clap_background_shadow_blend)
+endfunction
+
+function! s:get_config_indicator() abort
+  let opts = nvim_win_get_config(s:input_winid)
+  let opts.col += opts.width
+  let opts.width = s:indicator_width
+  let opts.focusable = v:false
+  let opts.style = 'minimal'
+  if s:has_nvim_0_5
+    let opts.zindex = 1000
+  endif
+  return opts
+endfunction
+
+function! s:open_indicator_win() abort
+  if exists('s:indicator_winid') && nvim_win_is_valid(s:indicator_winid)
+    return
+  endif
+  if !nvim_buf_is_valid(s:indicator_bufnr)
+    let s:indicator_bufnr = nvim_create_buf(v:false, v:true)
+    let g:__clap_indicator_bufnr = s:indicator_bufnr
+  endif
+  silent let s:indicator_winid = nvim_open_win(s:indicator_bufnr, v:true, s:get_config_indicator())
+  call setwinvar(s:indicator_winid, '&winhl', 'Normal:ClapIndicator')
+  call setbufvar(s:indicator_bufnr, '&signcolumn', 'no')
+endfunction
+
+function! s:get_config_border_right() abort
+  let opts = nvim_win_get_config(s:indicator_winid)
+  let opts.col += opts.width
+  let opts.width = s:symbol_width
+  let opts.focusable = v:false
+  if s:has_nvim_0_5
+    let opts.zindex = 1000
+  endif
+  return opts
+endfunction
+
+function! s:open_win_border_right() abort
+  if s:symbol_width > 0
+    if !nvim_buf_is_valid(s:symbol_right_bufnr)
+      let s:symbol_right_bufnr = nvim_create_buf(v:false, v:true)
+    endi

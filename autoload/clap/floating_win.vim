@@ -161,4 +161,72 @@ function! g:clap#floating_win#spinner.open() abort
   silent let s:spinner_winid = nvim_open_win(s:spinner_bufnr, v:false, s:get_config_spinner())
 
   call setwinvar(s:spinner_winid, '&winhl', 'Normal:ClapSpinner')
-  call s:set_minimal_buf_style(s:spinner_bufnr, 'clap_s
+  call s:set_minimal_buf_style(s:spinner_bufnr, 'clap_spinner')
+
+  let g:clap.spinner = get(g:clap, 'spinner', {})
+  let g:clap.spinner.winid = s:spinner_winid
+endfunction
+
+function! g:clap#floating_win#spinner.shrink() abort
+  if exists('s:spinner_winid') && nvim_win_is_valid(s:spinner_winid)
+    let width = clap#spinner#width()
+    let opts = nvim_win_get_config(s:spinner_winid)
+    if opts.width != width
+      let opts.width = width
+      call nvim_win_set_config(s:spinner_winid, opts)
+
+      let opts = nvim_win_get_config(s:spinner_winid)
+      let opts.col += opts.width
+      let opts.width = s:display_opts.width - opts.width - s:symbol_width * 2 - s:indicator_width
+      if opts.width < 0
+        let opts.width = 1
+      endif
+      let g:clap#floating_win#input.width = opts.width
+      call nvim_win_set_config(s:input_winid, opts)
+    endif
+  endif
+endfunction
+
+function! s:get_config_input() abort
+  let opts = nvim_win_get_config(s:spinner_winid)
+  let opts.col += opts.width
+  let opts.width = s:display_opts.width - opts.width - s:symbol_width * 2 - s:indicator_width
+  " E5555: API call: 'width' key must be a positive Integer
+  " Avoid E5555 here and it seems to be fine later.
+  if opts.width < 0
+    let opts.width = 1
+  endif
+  let opts.focusable = v:true
+  if s:has_nvim_0_5
+    let opts.zindex = 1000
+  endif
+  return opts
+endfunction
+
+function! g:clap#floating_win#input.open() abort
+  if exists('s:input_winid') && nvim_win_is_valid(s:input_winid)
+    return
+  endif
+  let opts = s:get_config_input()
+  let g:clap#floating_win#input.width = opts.width
+
+  if !nvim_buf_is_valid(s:input_bufnr)
+    let s:input_bufnr = nvim_create_buf(v:false, v:true)
+    let g:clap.input.bufnr = s:input_bufnr
+  endif
+  silent let s:input_winid = nvim_open_win(s:input_bufnr, v:true, opts)
+
+  let w:clap_search_text_hi_id = matchaddpos('ClapSearchText', [1])
+
+  call setwinvar(s:input_winid, '&winhl', 'Normal:ClapInput')
+  call s:set_minimal_buf_style(s:input_bufnr, 'clap_input')
+  " Disable the auto-completion plugin
+  let s:save_completeopt = &completeopt
+  call nvim_set_option('completeopt', '')
+  if s:exists_deoplete
+    call deoplete#custom#buffer_option('auto_complete', v:false)
+  endif
+  call setwinvar(s:input_winid, 'airline_disable_statusline', 1)
+  call setbufvar(s:input_bufnr, 'coc_suggest_disable', 1)
+  " Disable the auto-pairs plugin
+  call setbufvar(s:input_bufnr, 'coc_pairs_disabled', ['"', "'", '(', ')', '<', '>', '[', ']

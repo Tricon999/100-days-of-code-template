@@ -304,4 +304,77 @@ function! s:open_win_border_right() abort
   if s:symbol_width > 0
     if !nvim_buf_is_valid(s:symbol_right_bufnr)
       let s:symbol_right_bufnr = nvim_create_buf(v:false, v:true)
-    endi
+    endif
+    silent let s:symbol_right_winid = nvim_open_win(s:symbol_right_bufnr, v:false, s:get_config_border_right())
+    call setwinvar(s:symbol_right_winid, '&winhl', 'Normal:ClapSymbol')
+    call s:set_minimal_buf_style(s:symbol_right_bufnr, 'clap_spinner')
+    call setbufline(s:symbol_right_bufnr, 1, s:symbol_right)
+  endif
+endfunction
+
+function! s:try_adjust_preview() abort
+  if exists('s:preview_winid')
+    let preview_opts = nvim_win_get_config(s:preview_winid)
+    let opts = nvim_win_get_config(s:display_winid)
+    let preview_opts.row = opts.row + opts.height
+    call nvim_win_set_config(s:preview_winid, preview_opts)
+  endif
+endfunction
+
+function! s:adjust_display_for_border_symbol() abort
+  let opts = nvim_win_get_config(s:display_winid)
+  let opts.col += s:symbol_width
+  let opts.width -= s:symbol_width * 2
+  call nvim_win_set_config(s:display_winid, opts)
+endfunction
+
+function! s:get_config_preview(height) abort
+  let preview_direction = clap#preview#direction()
+  if preview_direction ==# 'LR'
+    let opts = nvim_win_get_config(s:display_winid)
+    let opts.row -= 1
+    let opts.col += opts.width
+    let opts.height += 1
+  else " preview_direction ==# 'UD'
+    let opts = nvim_win_get_config(s:display_winid)
+    let opts.row += opts.height
+    let opts.height = a:height
+  endif
+  let opts.style = 'minimal'
+
+  if s:has_nvim_0_5 && g:clap_popup_border !=? 'nil'
+    let opts.border = g:clap_popup_border
+    if preview_direction ==# 'UD'
+      let opts.width -= 2
+    else " preview_direction ==# 'UD'
+      let opts.height -= 2
+    endif
+  endif
+  return opts
+endfunction
+
+function! s:create_preview_win(height) abort
+  if !exists('s:display_winid') || !nvim_win_is_valid(s:display_winid)
+    return
+  endif
+
+  if !nvim_buf_is_valid(s:preview_bufnr)
+    let s:preview_bufnr = nvim_create_buf(v:false, v:true)
+  endif
+  silent let s:preview_winid = nvim_open_win(s:preview_bufnr, v:false, s:get_config_preview(a:height))
+
+  call setwinvar(s:preview_winid, '&spell', 0)
+  call setwinvar(s:preview_winid, '&winhl', s:preview_winhl)
+  " call setwinvar(s:preview_winid, '&winblend', 15)
+
+  call setbufvar(s:preview_bufnr, '&signcolumn', 'no')
+
+  let g:clap#floating_win#preview.winid = s:preview_winid
+  let g:clap#floating_win#preview.bufnr = s:preview_bufnr
+endfunction
+
+function! s:max_preview_size() abort
+  if clap#preview#direction() ==# 'LR'
+    return s:display_opts.height
+  else
+    let 

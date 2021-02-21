@@ -377,4 +377,92 @@ function! s:max_preview_size() abort
   if clap#preview#direction() ==# 'LR'
     return s:display_opts.height
   else
-    let 
+    let max_size = &lines - s:display_opts.row - s:display_opts.height - &cmdheight
+    return float2nr(max_size)
+  endif
+endfunction
+
+function! clap#floating_win#preview.show(lines) abort
+  if !clap#preview#is_enabled()
+    return
+  endif
+
+  let max_size = s:max_preview_size()
+  if max_size <= 0
+    call g:clap#floating_win#preview.close()
+    return
+  endif
+  let lines = a:lines[:max_size]
+  let height = len(lines)
+  if !exists('s:preview_winid')
+    call s:create_preview_win(height)
+  else
+    if clap#preview#direction() !=# 'LR'
+      let opts = nvim_win_get_config(s:preview_winid)
+      if opts.height != height
+        let opts.height = height
+        call nvim_win_set_config(s:preview_winid, opts)
+      endif
+    endif
+  endif
+  call clap#util#nvim_buf_set_lines(s:preview_bufnr, lines)
+endfunction
+
+function! clap#floating_win#preview.close() abort
+  if exists('s:preview_winid')
+    call clap#util#nvim_win_close_safe(s:preview_winid)
+    unlet s:preview_winid
+  endif
+endfunction
+
+function! clap#floating_win#preview.hide() abort
+  if !clap#preview#is_always_open()
+    call g:clap#floating_win#preview.close()
+  endif
+endfunction
+
+function! clap#floating_win#preview.clear() abort
+  call clap#util#nvim_buf_clear(s:preview_bufnr)
+endfunction
+
+function! s:ensure_closed() abort
+  call clap#floating_win#close()
+  silent! autocmd! ClapEnsureAllClosed
+endfunction
+
+function! s:open_shadow_before_indicator_win(yes) abort
+  if a:yes
+    if g:clap_enable_background_shadow
+      call s:open_shadow_win()
+    end
+    call s:open_indicator_win()
+  else
+    call s:open_indicator_win()
+    if g:clap_enable_background_shadow
+      call s:open_shadow_win()
+    end
+  endif
+endfunction
+
+function! clap#floating_win#open() abort
+  let g:__clap_display_curlnum = 1
+
+  let s:save_winheight = &winheight
+  let s:save_winminheight = &winminheight
+  let &winminheight = 1
+  let &winheight = 1
+
+  let s:indicator_width = clap#layout#indicator_width()
+
+  " The order matters.
+  call g:clap#floating_win#display.open()
+  call s:open_win_border_left()
+  call g:clap#floating_win#spinner.open()
+  call g:clap#floating_win#input.open()
+  if clap#preview#is_enabled()
+    call s:create_preview_win(s:display_opts.height)
+  endif
+
+  if g:clap_search_box_border_style ==# 'curve'
+    let open_shadow_first = v:false
+  elseif g:cla

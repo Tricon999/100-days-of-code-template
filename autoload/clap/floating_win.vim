@@ -465,4 +465,76 @@ function! clap#floating_win#open() abort
 
   if g:clap_search_box_border_style ==# 'curve'
     let open_shadow_first = v:false
-  elseif g:cla
+  elseif g:clap_search_box_border_style ==# 'nil'
+    let open_shadow_first = v:true
+  else
+    let open_shadow_first = v:false
+  endif
+  " This tricky issue has been resolved with the newly added zindex in neovim.
+  "
+  " Indicator win must be opened before shadow win in some cases.
+  " ref https://github.com/liuchengxu/vim-clap/issues/567#issuecomment-717554261
+  call s:open_shadow_before_indicator_win(open_shadow_first)
+
+  call s:open_win_border_right()
+
+  " This seemingly does not look good.
+  " call s:adjust_display_for_border_symbol()
+
+  call clap#_init()
+
+  augroup ClapEnsureAllClosed
+    autocmd!
+    " autocmd BufEnter,WinEnter,WinLeave * call s:ensure_closed()
+  augroup END
+
+  call g:clap.input.goto_win()
+
+  call g:clap.provider.try_set_syntax()
+  call g:clap.provider.on_enter()
+
+  silent doautocmd <nomodeline> User ClapOnEnter
+
+  startinsert
+
+  let g:clap.context.visible = v:true
+
+  call g:clap.provider.apply_query()
+endfunction
+
+function! s:win_close(winid) abort
+  " Removed `noautocmd`, some user-defined autocmd might be interrupted. Ref #472
+  " The interesting thing is Vim's popup won't be affected.
+  call clap#util#nvim_win_close_safe(a:winid)
+endfunction
+
+function! clap#floating_win#close() abort
+  let &winheight = s:save_winheight
+  let &winminheight = s:save_winminheight
+  silent! autocmd! ClapEnsureAllClosed
+
+  if s:symbol_width > 0
+    call s:win_close(s:symbol_left_winid)
+    call s:win_close(s:symbol_right_winid)
+  endif
+
+  if exists('s:shadow_winid')
+    call s:win_close(s:shadow_winid)
+  endif
+  noautocmd call g:clap#floating_win#preview.close()
+  call s:win_close(g:clap.input.winid)
+  call s:win_close(g:clap.spinner.winid)
+  call s:win_close(s:indicator_winid)
+
+  " I don't know why, but this could be related to the cursor move in grep.vim
+  " thus I have to go back to the start window in grep.vim
+  call s:win_close(g:clap.display.winid)
+
+  let &completeopt = s:save_completeopt
+  if s:exists_deoplete
+    call deoplete#custom#buffer_option('auto_complete', v:true)
+  endif
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

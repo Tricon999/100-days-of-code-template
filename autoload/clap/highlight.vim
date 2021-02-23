@@ -71,4 +71,72 @@ else
   function! s:add_display_highlights(hl_lines) abort
     " Avoid the error invalid buf
     if !bufexists(g:clap.display.bufnr)
-      ret
+      return
+    endif
+    " We do not have to clear the previous matches like neovim
+    " as the previous lines have been deleted, and the associated text_props have also been removed.
+    let lnum = 0
+    for indices in a:hl_lines
+      let group_idx = 1
+      for idx in indices
+        if group_idx < g:__clap_fuzzy_matches_hl_group_cnt + 1
+          call clap#highlight#add_highlight_at(lnum, idx, 'ClapFuzzyMatches'.group_idx)
+          let group_idx += 1
+        else
+          call clap#highlight#add_highlight_at(lnum, idx, g:__clap_fuzzy_last_hl_group)
+        endif
+      endfor
+      let lnum += 1
+    endfor
+  endfunction
+
+  function! clap#highlight#clear() abort
+  endfunction
+
+  function! clap#highlight#add_highlight_at(lnum, col, hl_group) abort
+    " 1-based
+    call prop_add(a:lnum+1, a:col+1, {'length': 1, 'type': a:hl_group, 'bufnr': g:clap.display.bufnr})
+  endfunction
+
+endif
+
+function! clap#highlight#add_highlights(hl_lines) abort
+  try
+    call s:add_display_highlights(a:hl_lines)
+  catch
+    return
+  endtry
+endfunction
+
+let s:highlight_delay_timer = -1
+function! clap#highlight#add_highlights_with_delay(hl_lines) abort
+  if s:highlight_delay_timer > 0
+    call timer_stop(s:highlight_delay_timer)
+  endif
+  let s:highlight_delay_timer = timer_start(100, { -> clap#highlight#add_highlights(a:hl_lines)})
+endfunction
+
+" Add highlight for the substring matches.
+function! clap#highlight#matchadd_substr(patterns) abort
+  let w:clap_match_ids = []
+  " Clap grep
+  " \{ -> E888
+  try
+    call add(w:clap_match_ids, matchadd('ClapMatches', a:patterns[0], s:default_priority))
+  catch
+    " Sometimes we may run into some pattern errors in that the query is not a
+    " valid vim pattern. Just ignore them as the highlight is not critical, we
+    " care more about the searched results IMO.
+    return
+  endtry
+
+  " As most 8 submatches, ClapMatches[1-8]
+  try
+    call map(a:patterns[1:8], 'add(w:clap_match_ids, matchadd("ClapMatches".(v:key+1), v:val, s:default_priority - 1))')
+  catch
+    return
+  endtry
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

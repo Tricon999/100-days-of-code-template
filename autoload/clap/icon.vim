@@ -81,4 +81,78 @@ function! s:get_attrs(group) abort
     let fg = s:normal_fg
   endif
   " guibg=NONE ctermbg=NONE is neccessary otherwise the bg could be unexpected.
-  return printf('%sbg=%s %sfg=%s guibg=NONE ctermbg=NONE', s:gui_or_cterm, s:normal_bg, s:gui_or_c
+  return printf('%sbg=%s %sfg=%s guibg=NONE ctermbg=NONE', s:gui_or_cterm, s:normal_bg, s:gui_or_cterm, fg)
+endfunction
+
+function! clap#icon#def_color_components() abort
+  " TODO: more robust gui_running detection for neovim, ref #378
+  let s:use_gui = exists('g:neovide') || (has('termguicolors') && &termguicolors) || (!has('nvim') && has('gui_running'))
+  let s:gui_or_cterm = s:use_gui ? 'gui' : 'cterm'
+
+  let s:normal_fg = s:get_color('Normal', 'fg')
+  if empty(s:normal_fg)
+    let s:normal_fg = s:gui_or_cterm ==# 'gui' ? '#b2b2b2' : 249
+  endif
+
+  let s:normal_bg = s:get_color('Normal', 'bg')
+  if empty(s:normal_bg)
+    let s:normal_bg = s:gui_or_cterm ==# 'gui' ? '#292b2e' : 235
+  endif
+endfunction
+
+let s:linked_groups = [
+      \ 'ModeMsg',
+      \ 'Type',
+      \ 'Number',
+      \ 'Float',
+      \ 'Question',
+      \ 'Title',
+      \ 'Identifier',
+      \ 'Repeat',
+      \ 'Keyword',
+      \ 'Constant',
+      \ 'String',
+      \ 'Character',
+      \ 'Statement',
+      \ 'WildMenu',
+      \ 'Folded',
+      \ 'FoldColumn',
+      \ 'DiffAdd',
+      \ 'DiffChange',
+      \ 'DiffText',
+      \ 'Function',
+      \ 'Define',
+      \ ]
+
+let s:linked_groups_len = len(s:linked_groups)
+
+call clap#icon#def_color_components()
+
+function! s:generic_hi_icons(head_only) abort
+  let pat_prefix = a:head_only ? '/^\s*' : '/'
+
+  let lk_idx = 0
+  let groups = []
+  let icons = clap#icon#get_all()
+  for idx in range(len(icons))
+    let group = 'ClapIcon'.idx
+    call add(groups, group)
+    execute 'syntax match' group pat_prefix.icons[idx].'/' 'contained'
+    execute 'hi!' group s:get_attrs(s:linked_groups[lk_idx])
+    let lk_idx += 1
+    let lk_idx = lk_idx % s:linked_groups_len
+  endfor
+
+  return groups
+endfunction
+
+function! clap#icon#add_hl_groups() abort
+  return s:generic_hi_icons(v:false)
+endfunction
+
+function! clap#icon#add_head_hl_groups() abort
+  return s:generic_hi_icons(v:true)
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

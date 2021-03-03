@@ -31,4 +31,58 @@ function! s:init_submatches_hl_group() abort
         \ ]
 
   " idx from 1
-  call map(clap_sub_matches, 's:hi_fg_only("ClapMatches".(v:key
+  call map(clap_sub_matches, 's:hi_fg_only("ClapMatches".(v:key+1), v:val[0], v:val[1])')
+endfunction
+
+function! s:add_fuzzy_match_hl_group(idx, ctermfg, guifg) abort
+  let group_name = 'ClapFuzzyMatches'.a:idx
+  call s:hi_fg_only(group_name, a:ctermfg, a:guifg)
+  if !has('nvim')
+    call prop_type_add(group_name, {'highlight': group_name})
+  endif
+endfunction
+
+function! s:init_fuzzy_match_hl_groups() abort
+  if exists('g:clap_fuzzy_match_hl_groups')
+    let clap_fuzzy_matches = g:clap_fuzzy_match_hl_groups
+  else
+    let clap_fuzzy_matches = [
+          \ [118 , '#87ff00'] ,
+          \ [82  , '#5fff00'] ,
+          \ [46  , '#00ff00'] ,
+          \ [47  , '#00ff5f'] ,
+          \ [48  , '#00ff87'] ,
+          \ [49  , '#00ffaf'] ,
+          \ [50  , '#00ffd7'] ,
+          \ [51  , '#00ffff'] ,
+          \ [87  , '#5fffff'] ,
+          \ ]
+  endif
+
+  " idx from 1
+  call map(clap_fuzzy_matches, 's:add_fuzzy_match_hl_group(v:key+1, v:val[0], v:val[1])')
+
+  let g:__clap_fuzzy_matches_hl_group_cnt = len(clap_fuzzy_matches)
+  let g:__clap_fuzzy_last_hl_group = 'ClapFuzzyMatches'.g:__clap_fuzzy_matches_hl_group_cnt
+endfunction
+
+function! clap#init#() abort
+  call clap#api#clap#init()
+  call clap#themes#init()
+
+  call s:init_submatches_hl_group()
+  call s:init_fuzzy_match_hl_groups()
+
+  " Spawn the daemon process eagerly
+  if clap#maple#is_available()
+    call clap#job#daemon#start(function('clap#client#handle'))
+
+    augroup ClapRecentFiles
+      autocmd!
+      autocmd BufAdd,BufEnter * call clap#client#notify_recent_file()
+    augroup END
+  endif
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

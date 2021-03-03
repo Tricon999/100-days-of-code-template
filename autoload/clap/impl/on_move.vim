@@ -17,4 +17,59 @@ endfunction
 if clap#maple#is_available()
   " Deprecated.
   function! clap#impl#on_move#handler(result, error) abort
-    if a:error is
+    if a:error isnot v:null
+      return
+    endif
+    call clap#state#render_preview(has_key(a:result, 'result') ? a:result.result : a:result)
+  endfunction
+
+  function! s:dispatch_on_move_impl() abort
+    if has_key(g:clap.provider._(), 'on_move_async')
+      call g:clap.provider._().on_move_async()
+    else
+      call s:sync_run_with_delay()
+    endif
+  endfunction
+
+  function! clap#impl#on_move#async() abort
+    call clap#client#notify('on_move')
+  endfunction
+else
+  function! s:dispatch_on_move_impl() abort
+    call s:sync_run_with_delay()
+  endfunction
+
+  function! clap#impl#on_move#async() abort
+  endfunction
+
+  function! clap#impl#on_move#handler(_result, _error) abort
+  endfunction
+endif
+
+function! clap#impl#on_move#invoke() abort
+  if get(g:, '__clap_has_no_matches', v:false)
+    return
+  endif
+  " Currently the on_move impl is for preview only.
+  if !clap#preview#is_enabled()
+    return
+  endif
+
+  if has_key(g:clap.provider._(), 'on_move_async')
+    call g:clap.provider._().on_move_async()
+  elseif has_key(g:clap.provider._(), 'on_move')
+    call s:dispatch_on_move_impl()
+  endif
+endfunction
+
+function! clap#impl#on_move#invoke_async() abort
+  if get(g:, '__clap_has_no_matches', v:false)
+    return
+  endif
+  if has_key(g:clap.provider._(), 'on_move_async')
+    call g:clap.provider._().on_move_async()
+  endif
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

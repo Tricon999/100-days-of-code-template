@@ -15,4 +15,94 @@ if !clap#preview#is_enabled()
             \ 'col': '15%',
             \ }
 elseif clap#preview#direction() ==# 'LR'
-  let s:defau
+  let s:default_layout = {
+            \ 'width': '40%',
+            \ 'height': '67%',
+            \ 'row': '20%',
+            \ 'col': '10%',
+            \ }
+else
+  let s:default_layout = {
+            \ 'width': '67%',
+            \ 'height': '33%',
+            \ 'row': '33%',
+            \ 'col': '17%',
+            \ }
+endif
+
+if s:is_nvim
+  call add(s:layout_keys, 'win')
+  let s:default_layout.relative = 'editor'
+endif
+
+function! s:validate(layout) abort
+  for key in keys(a:layout)
+    if index(s:layout_keys, key) < 0
+      call g:clap.abort('Invalid entry: '.key.' for g:clap_layout')
+    endif
+  endfor
+endfunction
+
+" FIXME: this could return 0 which throws error in NeoVim.
+function! s:calc(origin, size) abort
+  if type(a:size) == v:t_number
+    return a:size
+  elseif a:size =~# '%$'
+    return eval(a:size[:-2].'*'.a:origin.'/100')
+  else
+    call g:clap.abort(printf('Invalid value %s for g:clap_layout, allowed: Number or "Number%"', a:size))
+  endif
+endfunction
+
+function! s:adjust_indicator_width() abort
+  let width = winwidth(g:clap.start.winid)
+  if width < 45
+    let g:__clap_indicator_winwidth = 5
+  else
+    let g:__clap_indicator_winwidth = min([width / 4, 20])
+  endif
+endfunction
+
+function! s:layout() abort
+  if !exists('s:layout')
+    if exists('g:clap_layout')
+      let s:layout = extend(copy(s:default_layout), g:clap_layout)
+    else
+      let s:layout = s:default_layout
+    endif
+  endif
+  return s:layout
+endfunction
+
+function! clap#layout#indicator_width() abort
+  let layout = s:layout()
+
+  if has_key(layout, 'relative') && layout.relative ==# 'editor'
+    let width = &columns
+  else
+    let width = winwidth(g:clap.start.winid)
+  endif
+
+  if clap#preview#direction() ==# 'LR'
+    let width = width / 2
+  endif
+
+  let indicator_width = width < 30 ? 5 : min([width / 4, 20])
+
+  let g:__clap_indicator_winwidth = indicator_width
+
+  return indicator_width
+endfunction
+
+if s:is_nvim
+  function! s:user_layout() abort
+    let layout = s:layout()
+    if has_key(layout, 'relative') && layout.relative ==# 'editor'
+      let [width, height] = [&columns, &lines]
+      let opts = {'relative': 'editor'}
+    else
+      let [width, height] = [winwidth(g:clap.start.winid), winheight(g:clap.start.winid)]
+      let opts = {'relative': 'win', 'win': g:clap.start.winid}
+      call s:adjust_indicator_width()
+    endif
+    ret

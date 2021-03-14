@@ -67,4 +67,63 @@ function! clap#legacy#filter#async#dyn#start_ctags_recursive() abort
   endif
 endfunction
 
-fun
+function! clap#legacy#filter#async#dyn#start_filter(cmd) abort
+  let s:last_query = g:clap.input.get()
+
+  let filter_cmd = g:clap_enable_icon && g:clap.provider.id ==# 'files' ? ['--icon=File'] : []
+  let filter_cmd += [
+        \ '--number', s:PAR_RUN ? g:clap.display.preload_capacity : s:DYN_ITEMS_TO_SHOW,
+        \ '--winwidth', winwidth(g:clap.display.winid),
+        \ '--case-matching', has_key(g:clap.context, 'ignorecase') ? 'ignore' : 'smart',
+        \ 'filter', g:clap.input.get(), '--cmd', a:cmd, '--cmd-dir', clap#rooter#working_dir(),
+        \]
+  if has_key(g:clap.context, 'name-only')
+    call add(filter_cmd, '--match-scope=FileName')
+  endif
+  if s:PAR_RUN
+    call add(filter_cmd, '--par-run')
+  endif
+
+  let filter_cmd = clap#maple#build_cmd_list(filter_cmd)
+  call clap#legacy#job#stdio#start_service_with_delay(function('s:handle_stdio_message'), filter_cmd)
+endfunction
+
+function! clap#legacy#filter#async#dyn#start_filter_with_cache(tempfile) abort
+  let s:last_query = g:clap.input.get()
+
+  call clap#legacy#job#stdio#start_service_with_delay(
+        \ function('s:handle_stdio_message'),
+        \ clap#legacy#maple#command#filter_dyn(s:DYN_ITEMS_TO_SHOW, a:tempfile),
+        \ )
+endfunction
+
+function! clap#legacy#filter#async#dyn#start_grep() abort
+  let s:last_query = g:clap.input.get()
+
+  let grep_cmd = g:clap_enable_icon ? ['--icon=Grep'] : []
+  if has_key(g:clap.context, 'no-cache')
+    call add(grep_cmd, '--no-cache')
+  endif
+  let grep_cmd += [
+        \ '--number', s:PAR_RUN ? g:clap.display.preload_capacity : s:DYN_ITEMS_TO_SHOW,
+        \ '--winwidth', winwidth(g:clap.display.winid),
+        \ '--case-matching', has_key(g:clap.context, 'ignorecase') ? 'ignore' : 'smart',
+        \ 'grep', g:clap.input.get(),
+        \ ]
+
+  if exists('g:__clap_forerunner_tempfile')
+    let grep_cmd += ['--input', g:__clap_forerunner_tempfile]
+  else
+    let grep_cmd += ['--cmd-dir', clap#rooter#working_dir()]
+  endif
+
+  if s:PAR_RUN
+    call add(grep_cmd, '--par-run')
+  endif
+  let grep_cmd = clap#maple#build_cmd_list(grep_cmd)
+
+  call clap#legacy#job#stdio#start_service_with_delay(function('s:handle_stdio_message'), grep_cmd)
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

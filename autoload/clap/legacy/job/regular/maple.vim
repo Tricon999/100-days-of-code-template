@@ -111,3 +111,47 @@ if has('nvim')
 else
 
   function! s:close_cb(channel) abort
+    if clap#job#vim8_job_id_of(a:channel) == s:job_id
+      try
+        let s:chunks = split(ch_readraw(a:channel), "\n")
+        call s:on_complete()
+      catch
+        call clap#helper#echo_error(v:exception)
+        call clap#spinner#set_idle()
+      endtry
+    endif
+  endfunction
+
+  function! s:start_maple() abort
+    let s:job_id = clap#job#start_buffered(s:cmd, function('s:close_cb'))
+  endfunction
+endif
+
+function! clap#legacy#job#regular#maple#stop() abort
+  if s:job_id > 0
+    call clap#job#stop(s:job_id)
+    let s:job_id = -1
+  endif
+endfunction
+
+function! s:apply_start(_timer) abort
+  let s:chunks = []
+  let g:clap.display.cache = []
+  let s:Converter = get(g:clap.provider._(), 'converter', v:null)
+  call g:clap.preview.hide()
+  call s:start_maple()
+endfunction
+
+function! clap#legacy#job#regular#maple#start(cmd) abort
+  if s:job_timer != -1
+    call timer_stop(s:job_timer)
+  endif
+
+  call clap#legacy#job#regular#maple#stop()
+
+  let s:cmd = a:cmd
+  let s:job_timer = timer_start(s:maple_delay, function('s:apply_start'))
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

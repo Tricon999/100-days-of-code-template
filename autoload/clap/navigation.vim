@@ -117,4 +117,40 @@ if has('nvim')
       return ''
     endfunction
 
-    f
+    function! clap#navigation#scroll(direction) abort
+      return s:scroll_and_trigger_on_move(function('s:scroll'), [a:direction])
+    endfunction
+
+    function! clap#navigation#linewise_scroll(direction) abort
+      return s:scroll_and_trigger_on_move(function('s:linewise_scroll'), [a:direction])
+    endfunction
+
+    function! clap#navigation#linewise_scroll_down() abort
+      call g:clap.display.goto_win()
+      call s:linewise_scroll('down')
+      call g:clap.input.goto_win()
+    endfunction
+  endif
+
+else
+  function! clap#navigation#scroll(direction) abort
+    call win_execute(g:clap.display.winid, 'noautocmd call s:scroll(a:direction)')
+    call s:trigger_on_move()
+    return ''
+  endfunction
+
+  function! clap#navigation#linewise_scroll(direction) abort
+    call s:linewise_scroll(a:direction)
+    " redraw is neccessary!
+    " FIXME: redraw is too slow!
+    redraw
+    call s:trigger_on_move()
+  endfunction
+
+  function! clap#navigation#linewise_scroll_down() abort
+    call win_execute(g:clap.display.winid, 'call s:linewise_scroll("down")')
+  endfunction
+endif
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

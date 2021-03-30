@@ -276,3 +276,169 @@ function! s:create_input() abort
     let pos.highlight = 'ClapInput'
     let pos.wrap = v:false
     let pos.zindex = 100
+    let s:input_winid = popup_create([], pos)
+    call popup_hide(s:input_winid)
+
+    call win_execute(s:input_winid, 'call s:execute_in_input()')
+    if s:exists_deoplete
+      call deoplete#custom#buffer_option('auto_complete', v:false)
+    endif
+    let g:clap.input.winid = s:input_winid
+    let g:clap.input.bufnr = winbufnr(s:input_winid)
+  endif
+endfunction
+
+" Depreacted: Now we don't choose the hide way for the benefit of reusing the popup buffer,
+" for it could be very problematic.
+function! s:hide_all() abort
+  call popup_hide(s:display_winid)
+  if exists('s:preview_winid')
+    call popup_hide(s:preview_winid)
+  endif
+  call popup_hide(s:indicator_winid)
+  call popup_hide(s:input_winid)
+  call popup_hide(s:spinner_winid)
+endfunction
+
+function! s:close_others() abort
+  if exists('s:preview_winid')
+    noautocmd call popup_close(s:preview_winid)
+  endif
+  noautocmd call popup_close(s:indicator_winid)
+  noautocmd call popup_close(s:input_winid)
+  noautocmd call popup_close(s:spinner_winid)
+  if exists('s:symbol_left_winid')
+    noautocmd call popup_close(s:symbol_left_winid)
+  endif
+  if exists('s:symbol_right_winid')
+    noautocmd call popup_close(s:symbol_right_winid)
+  endif
+endfunction
+
+function! s:callback(_id, _result) abort
+  unlet s:display_winid
+  call clap#handler#exit()
+endfunction
+
+function! g:clap#popup#preview.show(lines) abort
+  if !g:clap#preview#is_enabled()
+    return
+  endif
+
+  if clap#preview#direction() !=# 'LR'
+    let display_pos = popup_getpos(s:display_winid)
+    let col = display_pos.col
+    let line = display_pos.line + display_pos.height
+    let minwidth = display_pos.width
+    call popup_move(s:preview_winid, {'col': col, 'line': line})
+  endif
+
+  call popup_show(s:preview_winid)
+  call popup_settext(s:preview_winid, a:lines)
+endfunction
+
+function! g:clap#popup#preview.hide() abort
+  if !clap#preview#is_always_open()
+    if exists('s:preview_winid')
+      call popup_hide(s:preview_winid)
+    endif
+  endif
+endfunction
+
+function! g:clap#popup#preview.clear() abort
+  if exists('s:preview_winid')
+    silent call deletebufline(winbufnr(s:preview_winid), 1, '$')
+  endif
+endfunction
+
+function! s:open_popup() abort
+  call s:create_display()
+
+  if s:symbol_width > 0
+    call s:create_symbol_left()
+    call s:create_symbol_right()
+  endif
+  if clap#preview#is_enabled()
+    call s:create_preview()
+  endif
+  call s:create_indicator()
+  call s:create_input()
+  call s:create_spinner()
+
+  call clap#popup#move_manager#mock_input()
+
+  call s:show_all()
+endfunction
+
+function! s:show_all() abort
+  call popup_show(s:display_winid)
+  call popup_show(s:indicator_winid)
+  call popup_show(s:input_winid)
+  call popup_show(s:spinner_winid)
+  if exists('s:symbol_left_winid')
+    call popup_show(s:symbol_left_winid)
+  endif
+  if exists('s:symbol_right_winid')
+    call popup_show(s:symbol_right_winid)
+  endif
+endfunction
+
+function! clap#popup#open() abort
+  call clap#popup#move_manager#init()
+  let g:__clap_display_curlnum = 1
+
+  let s:save_t_ve = &t_ve
+  set t_ve=
+
+  let s:restore_vim_signature_maps = v:false
+  if exists('*signature#utils#Maps') && !empty(maparg(get(g:SignatureMap, 'Leader', 'm'), ''))
+    call signature#utils#Maps('remove')
+    let s:restore_vim_signature_maps = v:true
+  endif
+
+  let s:indicator_width = clap#layout#indicator_width()
+
+  call s:open_popup()
+  call s:adjust_spinner()
+
+  let g:clap_indicator_winid = s:indicator_winid
+
+  call clap#_init()
+
+  " TODO more roboust?
+  augroup ClapEnsureAllClosed
+    autocmd!
+    autocmd BufEnter,WinEnter,WinLeave * call clap#popup#close()
+  augroup END
+
+  call g:clap.provider.try_set_syntax()
+  call g:clap.provider.on_enter()
+
+  silent doautocmd <nomodeline> User ClapOnEnter
+
+  call g:clap.provider.apply_query()
+endfunction
+
+function! clap#popup#close() abort
+  if exists('s:display_winid')
+    call popup_close(s:display_winid)
+  endif
+
+  if s:restore_vim_signature_maps
+    call signature#utils#Maps('create')
+  endif
+
+  let &t_ve = s:save_t_ve
+  let &completeopt = s:save_completeopt
+
+  if s:exists_deoplete
+    call deoplete#custom#buffer_option('auto_complete', v:true)
+  endif
+
+  call s:close_others()
+
+  silent autocmd! ClapEnsureAllClosed
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

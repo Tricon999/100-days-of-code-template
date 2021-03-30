@@ -68,4 +68,79 @@ function! clap#preview#file(fname) abort
   if !g:clap.display.win_is_valid()
     return
   endif
-  let fpath =
+  let fpath = expand(a:fname)
+  if filereadable(fpath)
+    call s:peek_file(a:fname, fpath)
+    return
+  elseif exists('g:__clap_provider_cwd')
+    let fpath_with_cwd = g:__clap_provider_cwd.s:path_seperator.fpath
+    if filereadable(fpath_with_cwd)
+      call s:peek_file(a:fname, fpath_with_cwd)
+      return
+    endif
+  endif
+  call s:show_file_props(a:fname)
+endfunction
+
+function! clap#preview#file_at(fpath, lnum) abort
+  let [start, end, hi_lnum] = clap#preview#get_range(a:lnum)
+  if filereadable(a:fpath)
+    let lines = readfile(a:fpath)[start : end]
+  else
+    let cwd = clap#rooter#working_dir()
+    if filereadable(cwd.s:path_seperator.a:fpath)
+      let lines = readfile(cwd.s:path_seperator.a:fpath)[start : end]
+    else
+      return
+    endif
+  endif
+  call insert(lines, a:fpath)
+  call g:clap.preview.show(lines)
+  call g:clap.preview.set_syntax(clap#ext#into_filetype(a:fpath))
+  call g:clap.preview.add_highlight(hi_lnum+1)
+  call clap#preview#highlight_header()
+endfunction
+
+" Given the origin lnum and the size of range, return
+" [origin_lnum-range_size, origin_lnum+range_size] and the target lnum that
+" the origin line should be positioned.
+" 0-based
+function! clap#preview#get_line_range(origin_lnum, range_size) abort
+  if a:origin_lnum - a:range_size > 0
+    return [a:origin_lnum - a:range_size, a:origin_lnum + a:range_size, a:range_size]
+  else
+    return [0, a:origin_lnum + a:range_size, a:origin_lnum]
+  endif
+endfunction
+
+function! clap#preview#get_range(origin_lnum) abort
+  let size = clap#preview#size_of(g:clap.provider.id)
+  if clap#preview#direction() ==# 'LR'
+    let size = max([size, winheight(g:clap.display.winid) / 2])
+  endif
+  return clap#preview#get_line_range(a:origin_lnum, size)
+endfunction
+
+function! clap#preview#show_lines(lines, syntax, hi_lnum) abort
+  call g:clap.preview.show(a:lines)
+  call g:clap.preview.set_syntax(a:syntax)
+  if a:hi_lnum > 0
+    call g:clap.preview.add_highlight(a:hi_lnum)
+  endif
+endfunction
+
+let s:preview_timer = -1
+let s:preview_delay = get(g:, 'clap_preview_delay', 100)
+
+let s:PREVIEW_DISABLED = tolower(g:clap_open_preview) ==# 'never'
+let s:ALWAYS_OPEN_PREVIEW = tolower(g:clap_open_preview) ==# 'always'
+
+function! clap#preview#is_enabled() abort
+  return !s:PREVIEW_DISABLED
+endfunction
+
+function! clap#preview#is_always_open() abort
+  return s:ALWAYS_OPEN_PREVIEW
+endfunction
+
+function! clap#preview#update_with_delay(

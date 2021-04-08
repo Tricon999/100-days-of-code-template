@@ -50,4 +50,43 @@ function! clap#provider#commits#parse_rev(line) abort
 endfunction
 
 function! s:commits.on_move() abort
-  let cur_line 
+  let cur_line = g:clap.display.getcurline()
+  let rev = clap#provider#commits#parse_rev(cur_line)
+  call clap#provider#commits#on_move_common('git show '.rev)
+endfunction
+
+function! clap#provider#commits#on_move_callback(result, error) abort
+  if a:error isnot v:null
+    return
+  endif
+  let lines = a:result.lines
+  call clap#preview#show_lines(lines, 'diff', -1)
+  call clap#preview#highlight_header()
+endfunction
+
+function! s:commits.on_move_async() abort
+  call clap#client#notify('on_move')
+endfunction
+
+function! clap#provider#commits#sink_inner(bang_cmd) abort
+  vertical botright new
+  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
+
+  setlocal modifiable
+  silent execute 'read' escape(a:bang_cmd, '%')
+  normal! gg"_dd
+  setfiletype diff
+  setlocal nomodifiable
+endfunction
+
+function! s:commits.sink(line) abort
+  let rev = clap#provider#commits#parse_rev(a:line)
+  call clap#provider#commits#sink_inner('!git show '.rev)
+endfunction
+
+let s:commits.syntax = 'clap_diff'
+
+let g:clap#provider#commits# = s:commits
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

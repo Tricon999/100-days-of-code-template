@@ -49,4 +49,14 @@ endfunction
 
 function! s:colors.on_exit() abort
   if get(s:, 'should_restore_color', v:true)
-    noautocmd 
+    noautocmd call g:clap.start.goto_win()
+    execute 'color' trim(s:old_color)
+    let &background = s:old_bg
+    let s:should_restore_color = v:true
+  endif
+endfunction
+
+let g:clap#provider#colors# = s:colors
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

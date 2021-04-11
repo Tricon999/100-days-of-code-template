@@ -20,4 +20,19 @@ function! s:raw_history() abort
 endfunction
 
 function! s:history_sink(selected) abort
-  let fpath = g:clap_enable_icon ? a:selected[4:] : a:select
+  let fpath = g:clap_enable_icon ? a:selected[4:] : a:selected
+  call clap#sink#edit_with_open_action(fpath)
+endfunction
+
+let s:history.icon = 'File'
+let s:history.syntax = 'clap_files'
+let s:history.sink = function('s:history_sink')
+let s:history.on_move = function('clap#provider#files#on_move_impl')
+let s:history.on_move_async = function('clap#impl#on_move#async')
+let s:history.source = function('s:raw_history')
+let s:history.support_open_action = v:true
+
+let g:clap#provider#history# = s:history
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

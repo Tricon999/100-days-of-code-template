@@ -68,3 +68,28 @@ endfunction
 function! s:yanks.on_move() abort
   let curline = g:clap.display.getcurline()
   let lines = split(curline, "\n")[:10]
+  if !empty(lines)
+    call g:clap.preview.show(lines)
+    if has_key(s:yank_info_map, curline)
+      call g:clap.preview.setbufvar('&syntax', s:yank_info_map[curline].syntax)
+    endif
+  endif
+endfunction
+
+function! s:yanks.sink(selected) abort
+  call setreg('"', a:selected)
+  normal! ""p
+endfunction
+
+function! s:yanks.on_enter() abort
+  if !get(g:, 'clap_enable_yanks_provider', 1)
+    call clap#helper#echo_error('Clap yanks provider is disabled, set g:clap_enable_yanks_provider to 1 to enable.')
+    call clap#handler#exit()
+    call feedkeys("\<Esc>", 'n')
+  endif
+endfunction
+
+let g:clap#provider#yanks# = s:yanks
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

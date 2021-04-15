@@ -70,4 +70,16 @@ let s:palette.current_selection = extend(
   \ s:palette.selected,
   \ 'keep'
 \ )
-let s:palette.current_selection_sign = s:pa
+let s:palette.current_selection_sign = s:palette.current_selection
+let s:palette.preview = {
+  \ 'guibg': s:nord2_gui,
+  \ 'ctermbg': s:nord3_term
+\ }
+
+let g:clap#themes#nord#palette = s:palette
+let g:clap_fuzzy_match_hl_groups = [
+  \ [s:nord8_term, s:nord8_gui],
+\ ]
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

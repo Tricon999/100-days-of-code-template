@@ -67,3 +67,27 @@ let s:palette.current_selection = {
   \'ctermfg': s:base02.xterm,
   \'cterm': 'bold',
   \'gui': 'bold',
+\}
+
+let s:palette.current_selection_sign = extend({
+  \'guifg': s:red.hex,
+  \'ctermfg': s:red.xterm,
+\}, s:palette.current_selection)
+
+let s:fuzzy = [
+  \ [s:base03.xterm, s:base03.hex],
+  \ [s:base02.xterm, s:base02.hex],
+  \ [s:base01.xterm, s:base01.hex],
+  \ [s:base00.xterm, s:base00.hex],
+  \ [s:base0.xterm, s:base0.hex],
+  \ [s:base1.xterm, s:base1.hex],
+\ ]
+let g:clap_fuzzy_match_hl_groups = s:fuzzy
+
+let s:clap_file_style = 'ctermfg=' . s:base00.xterm . ' ctermbg=NONE guifg=' . s:base00.hex . ' guibg=NONE'
+execute 'highlight ClapFile '. s:clap_file_style
+
+let g:clap#themes#solarized_light#palette = s:palette
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

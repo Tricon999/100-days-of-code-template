@@ -114,4 +114,70 @@ function! s:apply_default_theme() abort
 
   hi default link ClapPreview ClapDefaultPreview
   hi default link ClapSelected ClapDefaultSelected
-  hi default link
+  hi default link ClapCurrentSelection ClapDefaultCurrentSelection
+  hi default link ClapSelectedSign WarningMsg
+  hi default link ClapCurrentSelectionSign WarningMsg
+
+  execute 'hi default link ClapInput' s:input_default_hi_group
+  execute 'hi default link ClapDisplay' s:display_default_hi_group
+  hi default link ClapIndicator ClapInput
+endfunction
+
+function! s:make_display_EndOfBuffer_invisible() abort
+  let display_group = hlexists('ClapDisplay') ? 'ClapDisplay' : s:display_default_hi_group
+  " People can use their own display highlight group, so can't use s:display_default_hi_group here.
+  let guibg = s:extract_or(display_group, 'bg', 'gui', '#544a65')
+  let ctermbg = s:extract_or(display_group, 'bg', 'cterm', '60')
+  execute printf(
+        \ 'hi ClapDisplayInvisibleEndOfBuffer ctermfg=%s guifg=%s',
+        \ ctermbg,
+        \ guibg
+        \ )
+endfunction
+
+function! s:make_preview_EndOfBuffer_invisible() abort
+  let preview_group = hlexists('ClapPreview') ? 'ClapPreview' : 'ClapDefaultPreview'
+  let guibg = s:extract_or(preview_group, 'bg', 'gui', '#5e5079')
+  let ctermbg = s:extract_or(preview_group, 'bg', 'cterm', '60')
+  execute printf(
+        \ 'hi ClapPreviewInvisibleEndOfBuffer ctermfg=%s guifg=%s',
+        \ ctermbg,
+        \ guibg
+        \ )
+endfunction
+
+function! s:reverse_PopupCursor() abort
+  if !hlexists('ClapSearchText')
+    return
+  endif
+  let ctermbg = s:extract_or('ClapSearchText', 'bg', 'cterm', '60')
+  let guibg = s:extract_or('ClapSearchText', 'bg', 'gui', '#544a65')
+  let ctermfg = s:extract_or('ClapSearchText', 'fg', 'cterm', '249')
+  let guifg = s:extract_or('ClapSearchText', 'fg', 'gui', '#b2b2b2')
+  execute printf(
+        \ 'hi ClapPopupCursor guifg=%s ctermfg=%s ctermbg=%s guibg=%s cterm=bold,reverse gui=bold,reverse',
+        \ guifg,
+        \ ctermfg,
+        \ ctermbg,
+        \ guibg,
+        \ )
+endfunction
+
+function! s:init_theme() abort
+  hi ClapDefaultShadow guibg=#000000
+  hi default link ClapShadow ClapDefaultShadow
+  hi default link FloatBorder ClapPreview
+
+  if &background ==# 'dark'
+    hi ClapDefaultPreview ctermbg=237 guibg=#3E4452
+  else
+    hi ClapDefaultPreview ctermbg=7 guibg=#ecf5ff
+  endif
+
+  if !exists('s:palette') || !s:paint_is_ok()
+    call s:apply_default_theme()
+  endif
+
+  if !s:is_nvim && get(g:, 'clap_popup_cursor_shape', '') ==# ''
+    " block cursor
+    call s:re

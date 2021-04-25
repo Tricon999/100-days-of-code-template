@@ -50,4 +50,68 @@ function! s:hi_clap_symbol() abort
 endfunction
 
 " Try the palette, otherwise use the built-in material_design_dark theme.
-function! s:
+function! s:highlight_for(group_name, type) abort
+  if has_key(s:palette, a:type)
+    let props = s:palette[a:type]
+  " The exception seems to be silented here.
+  elseif has_key(g:clap#themes#material_design_dark#palette, a:type)
+    let props = g:clap#themes#material_design_dark#palette[a:type]
+  else
+    return
+  endif
+  execute 'hi default' a:group_name join(values(map(copy(props), 'v:key."=".v:val')), ' ')
+endfunction
+
+function! s:paint_is_ok() abort
+  try
+    call s:highlight_for('ClapSpinner', 'spinner')
+    " Backward compatible
+    if hlexists('ClapQuery')
+      hi link ClapSearchText ClapQuery
+    else
+      call s:highlight_for('ClapSearchText', 'search_text')
+    endif
+    call s:highlight_for('ClapInput', 'input')
+    call s:highlight_for('ClapDisplay', 'display')
+    call s:highlight_for('ClapIndicator', 'indicator')
+    call s:highlight_for('ClapSelected', 'selected')
+    call s:highlight_for('ClapCurrentSelection', 'current_selection')
+    call s:highlight_for('ClapSelectedSign', 'selected_sign')
+    call s:highlight_for('ClapCurrentSelectionSign', 'current_selection_sign')
+    call s:highlight_for('ClapPreview', 'preview')
+  catch
+    return v:false
+  endtry
+  return v:true
+endfunction
+
+function! s:apply_default_theme() abort
+  if !hlexists('ClapSpinner')
+    call s:hi_spinner()
+    augroup ClapRefreshSpinner
+      autocmd!
+      autocmd ColorScheme * call s:hi_spinner()
+    augroup END
+  endif
+
+  if !hlexists('ClapSearchText')
+    " A bit repeatation code here in case of ClapSpinner is defined explicitly.
+    let vis_ctermbg = s:extract_or(s:input_default_hi_group, 'bg', 'cterm', '60')
+    let vis_guibg = s:extract_or(s:input_default_hi_group, 'bg', 'gui', '#544a65')
+    let ident_ctermfg = s:extract_or('Normal', 'fg', 'cterm', '249')
+    let ident_guifg = s:extract_or('Normal', 'fg', 'gui', '#b2b2b2')
+    execute printf(
+          \ 'hi ClapSearchText guifg=%s ctermfg=%s ctermbg=%s guibg=%s cterm=bold gui=bold',
+          \ ident_guifg,
+          \ ident_ctermfg,
+          \ vis_ctermbg,
+          \ vis_guibg,
+          \ )
+  endif
+
+  hi ClapDefaultSelected         ctermfg=80  guifg=#5fd7d7 cterm=bold,underline gui=bold,underline
+  hi ClapDefaultCurrentSelection ctermfg=224 guifg=#ffd7d7 cterm=bold gui=bold
+
+  hi default link ClapPreview ClapDefaultPreview
+  hi default link ClapSelected ClapDefaultSelected
+  hi default link

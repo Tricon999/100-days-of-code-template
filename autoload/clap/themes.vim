@@ -180,4 +180,47 @@ function! s:init_theme() abort
 
   if !s:is_nvim && get(g:, 'clap_popup_cursor_shape', '') ==# ''
     " block cursor
-    call s:re
+    call s:reverse_PopupCursor()
+  endif
+
+  call s:hi_clap_symbol()
+  call s:make_display_EndOfBuffer_invisible()
+  call s:make_preview_EndOfBuffer_invisible()
+  call clap#icon#def_color_components()
+endfunction
+
+function! clap#themes#init() abort
+  hi default link ClapMatches Search
+  hi default link ClapNoMatchesFound ErrorMsg
+  hi default link ClapPopupCursor Type
+
+  if exists('g:clap_theme')
+    " If anything is wrong, just use the default theme.
+    if type(g:clap_theme) == v:t_string
+      try
+        let s:palette = g:clap#themes#{g:clap_theme}#palette
+      catch
+        let s:palette = g:clap#themes#material_design_dark#palette
+      endtry
+    elseif type(g:clap_theme) == v:t_dict
+      let s:palette = g:clap_theme
+    else
+      let s:palette = g:clap#themes#material_design_dark#palette
+    endif
+  elseif exists('g:colors_name')
+    try
+      let s:palette = g:clap#themes#{g:colors_name}#palette
+    catch
+    endtry
+  endif
+
+  call s:init_theme()
+
+  augroup ClapReloadTheme
+    autocmd!
+    autocmd ColorScheme * call s:init_theme()
+  augroup END
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

@@ -85,4 +85,90 @@ let g:clap_multi_selection_warning_silent = get(g:, 'clap_multi_selection_warnin
 
 function! clap#builtin_providers() abort
   if !exists('s:builtin_providers')
-    let s:builtin_provi
+    let s:builtin_providers = map(
+          \ split(globpath(s:cur_dir.'/clap/provider', '*'), '\n'),
+          \ 'fnamemodify(v:val, '':t:r'')'
+          \ )
+  endif
+  return s:builtin_providers
+endfunction
+
+function! s:inject_default_impl_is_ok(provider_info) abort
+  let provider_info = a:provider_info
+
+  " If sync provider
+  if has_key(provider_info, 'source')
+    if !has_key(provider_info, 'on_typed')
+      let provider_info.on_typed = { -> clap#client#notify('on_typed') }
+    endif
+    if !has_key(provider_info, 'filter')
+      let provider_info.filter = function('clap#legacy#filter#sync')
+    endif
+  else
+    if !has_key(provider_info, 'on_typed')
+      call clap#helper#echo_error('Provider without source must specify on_moved, but only has: '.keys(provider_info))
+      return v:false
+    endif
+    if !has_key(provider_info, 'jobstop')
+      let provider_info.jobstop = function('clap#legacy#dispatcher#jobstop')
+    endif
+  endif
+
+  return v:true
+endfunction
+
+function! s:detect_source_type() abort
+  let Source = g:clap.provider._().source
+  let source_ty = type(Source)
+
+  if source_ty == v:t_string
+    return g:__t_string
+  elseif source_ty == v:t_list
+    return g:__t_list
+  elseif source_ty == v:t_func
+    let string_or_list = Source()
+    if type(string_or_list) == v:t_string
+      return g:__t_func_string
+    elseif type(string_or_list) == v:t_list
+      return g:__t_func_list
+    else
+      call g:clap.abort('Must return a String or a List if source is a Funcref')
+    endif
+  endif
+  return v:null
+endfunction
+
+function! clap#_init() abort
+  call clap#spinner#init()
+
+  call g:clap.provider.init_display_win()
+
+  " Ensure the filetype is empty on init.
+  " Each provider can set its own syntax for the highlight purpose.
+  call g:clap.display.setbufvar('&filetype', '')
+endfunction
+
+function! clap#_exit() abort
+  call g:clap.provider.jobstop()
+  call clap#maple#clean_up()
+
+  noautocmd call g:clap.close_win()
+  call g:clap.preview.clear()
+  call g:clap.display.matchdelete()
+
+  let g:clap.display.cache = []
+  let g:clap.display.initial_size = -1
+  " Reset this for vim issue. Ref #223
+  let g:clap.display.winid = -1
+
+  " Remember to get what the sink needs before clearing the buffer.
+  call g:clap.input.clear()
+  call g:clap.display.clear()
+
+  call clap#sign#reset_all()
+
+  call clap#state#clear_post()
+endfunction
+
+function! clap#_for(provider_id_or_alias) abort
+  let g:clap.provider.ar

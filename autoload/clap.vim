@@ -171,4 +171,82 @@ function! clap#_exit() abort
 endfunction
 
 function! clap#_for(provider_id_or_alias) abort
-  let g:clap.provider.ar
+  let g:clap.provider.args = []
+  call clap#for(a:provider_id_or_alias)
+endfunction
+
+" Sometimes we don't need to go back to the start window, hence clap#_exit() is extracted.
+function! clap#exit() abort
+  call g:clap.start.goto_win()
+  call clap#_exit()
+endfunction
+
+function! clap#should_use_raw_cwd() abort
+  return g:clap_disable_run_rooter
+        \ || !g:clap.provider.has_enable_rooter()
+        \ || getbufvar(g:clap.start.bufnr, '&bt') ==# 'terminal'
+endfunction
+
+function! clap#register(provider_id, provider_info) abort
+  if has_key(g:clap.registrar, a:provider_id)
+    call clap#helper#echo_error('This provider id already exists: '.a:provider_id)
+    return
+  endif
+
+  if !s:inject_default_impl_is_ok(a:provider_info)
+    return
+  endif
+
+  let g:clap.registrar[a:provider_id] = a:provider_info
+endfunction
+
+function! s:validate_provider(registration_info) abort
+  " Every provider should specify the sink option.
+  if !has_key(a:registration_info, 'sink')
+    call clap#helper#echo_error('A valid provider must provide sink option')
+    return v:false
+  endif
+  if has_key(a:registration_info, 'source')
+    let ty_source = type(a:registration_info.source)
+    if ty_source == v:t_list
+          \ || ty_source == v:t_string
+          \ || ty_source == v:t_func
+    else
+      call clap#helper#echo_error('source must be a list, string or funcref')
+      return v:false
+    endif
+  else
+    " Pure async provider
+    if !has_key(a:registration_info, 'on_typed')
+      call clap#helper#echo_error('An async provider must provide on_typed option')
+      return v:false
+    endif
+  endif
+  return v:true
+endfunction
+
+function! s:try_register_is_ok(provider_id) abort
+  " User pre-defined config in the vimrc
+  if exists('g:clap_provider_{a:provider_id}')
+    let registration_info = g:clap_provider_{a:provider_id}
+  else
+    " Try the autoloaded provider
+    try
+      let registration_info = g:clap#provider#{a:provider_id}#
+    catch /^Vim\%((\a\+)\)\=:E121/
+      call clap#helper#echo_error('Fail to load provider: '.a:provider_id.', E:'.v:exception)
+      return v:false
+    endtry
+  endif
+
+  if !s:inject_default_impl_is_ok(registration_info)
+    return v:false
+  endif
+
+  let g:clap.registrar[a:provider_id] = {}
+  call extend(g:clap.registrar[a:provider_id], registration_info)
+
+  return s:validate_provider(registration_info)
+endfunction
+
+function! clap#for(pr

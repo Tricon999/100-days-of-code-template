@@ -249,4 +249,82 @@ function! s:try_register_is_ok(provider_id) abort
   return s:validate_provider(registration_info)
 endfunction
 
-function! clap#for(pr
+function! clap#for(provider_id_or_alias) abort
+  if has_key(s:provider_alias, a:provider_id_or_alias)
+    let provider_id = s:provider_alias[a:provider_id_or_alias]
+  else
+    let provider_id = a:provider_id_or_alias
+  endif
+
+  let g:clap.provider.id = provider_id
+  let g:clap.display.cache = []
+
+  " If the registrar is not aware of this provider, try registering it.
+  if !has_key(g:clap.registrar, provider_id)
+        \ && !s:try_register_is_ok(provider_id)
+    return
+  endif
+
+  call clap#state#clear_pre()
+
+  " g:__clap_provider_cwd can be set during this process, so this needs to be executed after s:clear_state()
+  if has_key(g:clap.provider._(), 'source')
+    if has_key(g:clap.provider._(), 'source_type')
+      let g:clap.provider.source_type = g:clap.provider._().source_type
+    else
+      let g:clap.provider.source_type = s:detect_source_type()
+      let g:clap.registrar[provider_id]['source_type'] = g:clap.provider.source_type
+    endif
+  endif
+
+  call clap#selection#init()
+
+  silent doautocmd <nomodeline> User ClapOnInitialize
+
+  " This flag is used to slience the autocmd events for NeoVim, e.g., on_typed.
+  " Vim doesn't have these issues as it uses noautocmd in most cases.
+  "
+  " Without this flag, the on_typed hook can be triggered when relaunching
+  " some provider. To reproduce:
+  " 1. :Clap
+  " 2. Choose proj_tags
+  " 3. proj_tags ontyped hook will be triggered.
+  let g:__clap_open_win_pre = v:true
+  call g:clap.open_win()
+  let g:__clap_open_win_pre = v:false
+
+  " the indicator winwidth is available now, adjust the indicator.
+  call clap#indicator#render()
+endfunction
+
+if !exists('g:clap')
+  call clap#init#()
+endif
+
+function! s:parse_opts(args) abort
+  let idx = 0
+  let g:clap.provider.raw_args = a:args
+  " TODO: Switch the argument parsing to CLI interface?
+  let g:clap.provider.args = []
+  for arg in a:args
+    if arg ==# '--'
+      let g:clap.context.query = join(a:args[idx+1 :], ' ')
+      break
+    endif
+    if arg =~? '^++\w*=\w*'
+      let matched = matchlist(arg, '^++\(\w*\)=\(\S*\)')
+      let [k, v] = [matched[1], matched[2]]
+      if has_key(g:clap.context, k)
+        let g:clap.context[k] .= ' '.v
+      else
+        let g:clap.context[k] = v
+      endif
+    elseif arg =~? '^+\w*'
+      let opt = arg[1:]
+      let g:clap.context[opt] = v:true
+    else
+      call add(g:clap.provider.args, arg)
+    endif
+    let idx += 1
+  endfor
+  if has_key(

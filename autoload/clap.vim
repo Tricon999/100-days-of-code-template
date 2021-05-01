@@ -327,4 +327,73 @@ function! s:parse_opts(args) abort
     endif
     let idx += 1
   endfor
-  if has_key(
+  if has_key(g:clap.context, 'query')
+    if g:clap.context.query ==# '@visual'
+      let g:clap.context.query = clap#util#get_visual_selection()
+    else
+      let g:clap.context.query = clap#util#expand(g:clap.context.query)
+    endif
+  endif
+endfunction
+
+function! clap#(bang, ...) abort
+  if a:000 == ['install-binary']
+    call clap#installer#install(v:false)
+    return
+  elseif a:000 == ['install-binary!']
+    call clap#installer#install(v:true)
+    return
+  endif
+
+  let g:clap.start.bufnr = bufnr('')
+  let g:clap.start.winid = win_getid()
+  let g:clap.start.old_pos = getpos('.')
+
+  let g:clap.context = {'visible': v:false}
+  let g:clap.tmps = []
+
+  if a:bang
+    let g:clap.context.async = v:true
+  endif
+
+  if a:0 == 0
+    let provider_id_or_alias = 'providers'
+    let g:clap.provider.args = []
+  else
+    if a:000 == ['debug']
+      call clap#debugging#info()
+      return
+    elseif a:000 == ['debug+']
+      call clap#debugging#info_to_clipboard()
+      return
+    endif
+    if a:1 ==# '!'
+      let g:clap.context['no-cache'] = v:true
+      let provider_id_or_alias = a:2
+      call s:parse_opts(a:000[2:])
+    else
+      let provider_id_or_alias = a:1
+      call s:parse_opts(a:000[1:])
+    endif
+  endif
+
+  if provider_id_or_alias =~# '!$'
+    let g:clap.context['no-cache'] = v:true
+    let provider_id_or_alias = provider_id_or_alias[:-2]
+  endif
+
+  call clap#for(provider_id_or_alias)
+endfunction
+
+function! clap#run(provider) abort
+  let id = has_key(a:provider, 'id') ? a:provider['id'] : 'run'
+  let g:clap_provider_{id} = a:provider
+  if s:inject_default_impl_is_ok(g:clap_provider_{id})
+        \ && s:validate_provider(g:clap_provider_{id})
+    let g:clap.registrar[id] = g:clap_provider_{id}
+    execute 'Clap' id
+  endif
+endfunction
+
+let &cpoptions = s:save_cpo
+unlet s:save_cpo

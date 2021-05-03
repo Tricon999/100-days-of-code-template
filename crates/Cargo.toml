@@ -1,0 +1,17 @@
+
+[workspace]
+
+members = [
+    "dumb_analyzer",
+    "filter",
+    "icon",
+    "cli",
+    "maple_core",
+    "matcher",
+    "matcher/extracted_fzy",
+    "pattern",
+    "printer",
+    "types",
+    "utils",
+    "upgrade",
+]

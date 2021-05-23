@@ -43,3 +43,28 @@ pub struct TagsFile {
 impl TagsFile {
     pub fn run(&self, _args: Args) -> Result<()> {
         let dir = self.c_args.dir()?;
+
+        let exclude_opt = self.c_args.exclude_opt();
+        let tags_generator = TagsGenerator::new(
+            self.c_args.languages.clone(),
+            &self.t_args.kinds_all,
+            &self.t_args.fields,
+            &self.t_args.extras,
+            &self.c_args.files,
+            &dir,
+            &exclude_opt,
+        );
+
+        let tags_searcher = CtagsSearcher::new(tags_generator);
+
+        if let Some(ref query) = self.query {
+            let symbols =
+                tags_searcher.search_symbols(query, QueryType::StartWith, self.force_generate)?;
+            for symbol in symbols {
+                println!("{symbol:?}");
+            }
+        }
+
+        Ok(())
+    }
+}

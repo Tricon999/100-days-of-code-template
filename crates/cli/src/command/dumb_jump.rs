@@ -59,4 +59,30 @@ impl DumbJump {
                 Some(cwd) => cwd,
                 None => std::env::current_dir()?,
             };
-       
+            let mut tags_generator = TagsGenerator::with_dir(cwd);
+            if let Some(language) = get_language(&extension) {
+                tags_generator.set_languages(language.into());
+            }
+
+            let ctags_searcher = CtagsSearcher::new(tags_generator);
+            let usages = ctags_searcher.search_usages(
+                &word,
+                &Default::default(),
+                QueryType::Exact,
+                false,
+            )?;
+            println!("usages: {usages:#?}");
+        }
+
+        Ok(())
+    }
+
+    pub fn regex_usages(&self, classify: bool, usage_matcher: &UsageMatcher) -> Result<Usages> {
+        let searcher = RegexSearcher {
+            word: self.word.to_string(),
+            extension: self.extension.to_string(),
+            dir: self.cmd_dir.clone(),
+        };
+        Ok(searcher.search_usages(classify, usage_matcher)?.into())
+    }
+}

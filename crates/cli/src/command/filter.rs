@@ -55,4 +55,74 @@ pub struct Filter {
     #[clap(long, parse(from_str = parse_bonus), default_value = "none")]
     bonus: Bonus,
 
-    /
+    /// Synchronous filtering, returns until the input stream is complete.
+    #[clap(long)]
+    sync: bool,
+
+    #[clap(long)]
+    par_run: bool,
+}
+
+/// Prints the results of filter::sync_run() to stdout.
+fn print_sync_filter_results(
+    matched_items: Vec<MatchedItem>,
+    number: Option<usize>,
+    winwidth: usize,
+    icon: Icon,
+) {
+    if let Some(number) = number {
+        let total_matched = matched_items.len();
+        let mut matched_items = matched_items;
+        matched_items.truncate(number);
+        printer::to_display_lines(matched_items, winwidth, icon).print_json(total_matched);
+    } else {
+        matched_items.iter().for_each(|matched_item| {
+            let indices = &matched_item.indices;
+            let text = matched_item.display_text();
+            printer::println_json!(text, indices);
+        });
+    }
+}
+
+impl Filter {
+    /// Firstly try building the Source from shell command, then the input file, finally reading the source from stdin.
+    fn generate_source<I: Iterator<Item = Arc<dyn ClapItem>>>(&self) -> SequentialSource<I> {
+        if let Some(ref cmd_str) = self.cmd {
+            if let Some(ref dir) = self.cmd_dir {
+                Exec::shell(cmd_str).cwd(dir).into()
+            } else {
+                Exec::shell(cmd_str).into()
+            }
+        } else {
+            self.input
+                .as_ref()
+                .map(|i| i.deref().clone().into())
+                .unwrap_or(SequentialSource::<I>::Stdin)
+        }
+    }
+
+    fn generate_par_source(&self) -> ParallelSource {
+        if let Some(ref cmd_str) = self.cmd {
+            let exec = if let Some(ref dir) = self.cmd_dir {
+                Exec::shell(cmd_str).cwd(dir)
+            } else {
+                Exec::shell(cmd_str)
+            };
+            ParallelSource::Exec(Box::new(exec))
+        } else {
+            let file = self
+                .input
+                .as_ref()
+                .map(|i| i.deref().clone())
+                .expect("Only File and Exec source can be parallel");
+            ParallelSource::File(file)
+        }
+    }
+
+    fn get_bonuses(&self) -> Vec<Bonus> {
+        use std::io::BufRead;
+
+        let mut bonuses = vec![self.bonus.clone()];
+        if let Some(ref recent_files) = self.recent_files {
+            // Ignore the error cases.
+      

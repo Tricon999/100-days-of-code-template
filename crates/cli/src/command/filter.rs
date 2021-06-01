@@ -125,4 +125,54 @@ impl Filter {
         let mut bonuses = vec![self.bonus.clone()];
         if let Some(ref recent_files) = self.recent_files {
             // Ignore the error cases.
-      
+            if let Ok(file) = std::fs::File::open(recent_files) {
+                let lines: Vec<String> = std::io::BufReader::new(file)
+                    .lines()
+                    .filter_map(|x| x.ok())
+                    .collect();
+                bonuses.push(Bonus::RecentFiles(lines.into()));
+            }
+        }
+
+        bonuses
+    }
+
+    pub fn run(
+        &self,
+        Args {
+            number,
+            winwidth,
+            icon,
+            case_matching,
+            ..
+        }: Args,
+    ) -> Result<()> {
+        let matcher_builder = MatcherBuilder::new()
+            .bonuses(self.get_bonuses())
+            .match_scope(self.match_scope)
+            .fuzzy_algo(self.algo)
+            .case_matching(case_matching);
+
+        if self.sync {
+            let ranked = filter_sequential(
+                self.generate_source::<std::iter::Empty<_>>(),
+                matcher_builder.build(self.query.as_str().into()),
+            )?;
+
+            print_sync_filter_results(ranked, number, winwidth.unwrap_or(100), icon);
+        } else if self.par_run {
+            filter::par_dyn_run(
+                &self.query,
+                FilterContext::new(icon, number, winwidth, matcher_builder),
+                self.generate_par_source(),
+            )?;
+        } else {
+            filter::dyn_run::<std::iter::Empty<_>>(
+                &self.query,
+                FilterContext::new(icon, number, winwidth, matcher_builder),
+                self.generate_source(),
+            )?;
+        }
+        Ok(())
+    }
+}

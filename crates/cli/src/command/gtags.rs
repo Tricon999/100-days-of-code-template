@@ -21,4 +21,21 @@ pub struct Gtags {
 }
 
 impl Gtags {
-    pub
+    pub fn run(&self, _args: Args) -> Result<()> {
+        let gtags_searcher = GtagsSearcher::new(self.cwd.as_ref().to_path_buf());
+
+        gtags_searcher.create_or_update_tags()?;
+
+        if self.reference {
+            for line in gtags_searcher.search_references(&self.query)? {
+                println!("{:?}", line.grep_format_gtags("refs", &self.query, false));
+            }
+        } else {
+            for line in gtags_searcher.search_definitions(&self.query)? {
+                println!("{:?}", line.grep_format_gtags("defs", &self.query, false));
+            }
+        }
+
+        Ok(())
+    }
+}

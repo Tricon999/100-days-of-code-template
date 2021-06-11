@@ -46,4 +46,19 @@ impl Rpc {
                 .parse()
                 .unwrap_or(tracing::Level::DEBUG);
 
-            let subscriber = tracing_subscriber::Fm
+            let subscriber = tracing_subscriber::FmtSubscriber::builder()
+                .with_max_level(max_level)
+                .with_line_number(true)
+                .with_writer(non_blocking)
+                .finish();
+
+            tracing::subscriber::set_global_default(subscriber)?;
+
+            maple_core::stdio_server::start().await;
+        } else {
+            maple_core::stdio_server::start().await;
+        }
+
+        Ok(())
+    }
+}

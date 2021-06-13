@@ -23,4 +23,11 @@ impl KeywordPriority for Rust {
         } else if token.starts_with("pub") {
             Some(7)
         } else if Self::STATEMENT.contains(&token) {
-            Some(
+            Some(8)
+        } else if token.starts_with("[cfg") {
+            Some(10)
+        } else {
+            None
+        }
+    }
+}

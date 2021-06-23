@@ -30,4 +30,91 @@ pub enum ParallelSource {
 pub fn par_dyn_run(
     query: &str,
     filter_context: FilterContext,
-    par_source: Par
+    par_source: ParallelSource,
+) -> Result<()> {
+    let query: Query = query.into();
+
+    match par_source {
+        ParallelSource::File(file) => {
+            par_dyn_run_inner::<Empty<_>, _>(
+                query,
+                filter_context,
+                ParSourceInner::Lines(std::fs::File::open(file)?),
+            )?;
+        }
+        ParallelSource::Exec(exec) => {
+            par_dyn_run_inner::<Empty<_>, _>(
+                query,
+                filter_context,
+                ParSourceInner::Lines(exec.stream_stdout()?),
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Generate an iterator of [`MatchedItem`] from a parallelable iterator.
+pub fn par_dyn_run_list<'a, 'b: 'a>(
+    query: &'a str,
+    filter_context: FilterContext,
+    items: impl IntoParallelIterator<Item = Arc<dyn ClapItem>> + 'b,
+) {
+    let query: Query = query.into();
+    par_dyn_run_inner::<_, std::io::Empty>(query, filter_context, ParSourceInner::Items(items))
+        .expect("Matching items in parallel can not fail");
+}
+
+#[derive(Debug)]
+pub struct BestItems<P: ProgressUpdate<DisplayLines>> {
+    pub icon: Icon,
+    /// Time of last notification.
+    pub past: Instant,
+    /// Top N items.
+    pub items: Vec<MatchedItem>,
+    pub last_lines: Vec<String>,
+    pub last_visible_highlights: Vec<Vec<usize>>,
+    pub winwidth: usize,
+    pub max_capacity: usize,
+    pub progressor: P,
+    pub update_interval: Duration,
+}
+
+impl<P: ProgressUpdate<DisplayLines>> BestItems<P> {
+    pub fn new(
+        icon: Icon,
+        winwidth: usize,
+        max_capacity: usize,
+        progressor: P,
+        update_interval: Duration,
+    ) -> Self {
+        Self {
+            icon,
+            past: Instant::now(),
+            items: Vec::with_capacity(max_capacity),
+            last_lines: Vec::with_capacity(max_capacity),
+            last_visible_highlights: Vec::with_capacity(max_capacity),
+            winwidth,
+            max_capacity,
+            progressor,
+            update_interval,
+        }
+    }
+
+    fn sort(&mut self) {
+        self.items.sort_unstable_by(|a, b| b.cmp(a));
+    }
+
+    pub fn on_new_match(
+        &mut self,
+        matched_item: MatchedItem,
+        total_matched: usize,
+        total_processed: usize,
+    ) {
+        if self.items.len() < self.max_capacity {
+            self.items.push(matched_item);
+            self.sort();
+
+            let now = Instant::now();
+            if now > self.past + self.update_interval {
+        

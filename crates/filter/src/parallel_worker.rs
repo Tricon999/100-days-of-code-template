@@ -117,4 +117,65 @@ impl<P: ProgressUpdate<DisplayLines>> BestItems<P> {
 
             let now = Instant::now();
             if now > self.past + self.update_interval {
-        
+                let display_lines =
+                    printer::to_display_lines(self.items.clone(), self.winwidth, self.icon);
+                self.progressor
+                    .update_all(&display_lines, total_matched, total_processed);
+                self.last_lines = display_lines.lines;
+                self.past = now;
+            }
+        } else {
+            let last = self
+                .items
+                .last_mut()
+                .expect("Max capacity is non-zero; qed");
+
+            let new = matched_item;
+            if let CmpOrdering::Greater = new.cmp(last) {
+                *last = new;
+                self.sort();
+            }
+
+            if total_matched % 16 == 0 || total_processed % 16 == 0 {
+                let now = Instant::now();
+                if now > self.past + self.update_interval {
+                    let display_lines =
+                        printer::to_display_lines(self.items.clone(), self.winwidth, self.icon);
+
+                    let visible_highlights = display_lines
+                        .indices
+                        .iter()
+                        .map(|line_highlights| {
+                            line_highlights
+                                .iter()
+                                .copied()
+                                .filter(|&x| x <= self.winwidth)
+                                .collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>();
+
+                    if self.last_lines != display_lines.lines.as_slice()
+                        || self.last_visible_highlights != visible_highlights
+                    {
+                        self.progressor
+                            .update_all(&display_lines, total_matched, total_processed);
+                        self.last_lines = display_lines.lines;
+                        self.last_visible_highlights = visible_highlights;
+                    } else {
+                        self.progressor.update_brief(total_matched, total_processed)
+                    }
+
+                    self.past = now;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct StdioProgressor;
+
+impl ProgressUpdate<DisplayLines> for StdioProgressor {
+    fn update_brief(&self, matched: usize, processed: usize) {
+        #[allow(non_upper_case_globals)]
+        const deprecated_method: &str = "clap#state#process_filte

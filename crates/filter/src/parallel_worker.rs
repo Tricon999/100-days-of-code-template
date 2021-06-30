@@ -270,4 +270,70 @@ where
     let winwidth = winwidth.unwrap_or(100);
     let number = number.unwrap_or(100);
 
-    let ma
+    let matched_count = AtomicUsize::new(0);
+    let processed_count = AtomicUsize::new(0);
+
+    let best_items = Mutex::new(BestItems::new(
+        icon,
+        winwidth,
+        number,
+        StdioProgressor,
+        Duration::from_millis(200),
+    ));
+
+    let process_item = |item: Arc<dyn ClapItem>, processed: usize| {
+        if let Some(matched_item) = matcher.match_item(item) {
+            let matched = matched_count.fetch_add(1, Ordering::SeqCst);
+
+            // TODO: not use mutex?
+            let mut best_items = best_items.lock();
+            best_items.on_new_match(matched_item, matched, processed);
+            drop(best_items);
+        }
+    };
+
+    match parallel_source {
+        ParSourceInner::Items(items) => items.into_par_iter().for_each(|item| {
+            let processed = processed_count.fetch_add(1, Ordering::SeqCst);
+            process_item(item, processed);
+        }),
+        ParSourceInner::Lines(reader) => {
+            // To avoid Err(Custom { kind: InvalidData, error: "stream did not contain valid UTF-8" })
+            // The line stream can contain invalid UTF-8 data.
+            std::io::BufReader::new(reader)
+                .lines()
+                .filter_map(Result::ok)
+                .par_bridge()
+                .for_each(|line: String| {
+                    let processed = processed_count.fetch_add(1, Ordering::SeqCst);
+                    if let Some(item) = to_clap_item(matcher.match_scope(), line) {
+                        process_item(item, processed);
+                    }
+                });
+        }
+    }
+
+    let total_matched = matched_count.into_inner();
+    let total_processed = processed_count.into_inner();
+
+    let BestItems {
+        items, progressor, ..
+    } = best_items.into_inner();
+
+    let matched_items = items;
+
+    let display_lines = printer::to_display_lines(matched_items, winwidth, icon);
+    progressor.on_finished(display_lines, total_matched, total_processed);
+
+    Ok(())
+}
+
+/// Similar to `[par_dyn_run]`, but used in the process which means we need to cancel the command
+/// creating the items manually in order to cancel the task ASAP.
+pub fn par_dyn_run_inprocess<P>(
+    query: &str,
+    filter_context: FilterContext,
+    par_source: ParallelSource,
+    progressor: P,
+    stop_signal: Arc<AtomicBool>,
+) -> Result<

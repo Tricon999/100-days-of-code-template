@@ -178,4 +178,96 @@ pub struct StdioProgressor;
 impl ProgressUpdate<DisplayLines> for StdioProgressor {
     fn update_brief(&self, matched: usize, processed: usize) {
         #[allow(non_upper_case_globals)]
-        const deprecated_method: &str = "clap#state#process_filte
+        const deprecated_method: &str = "clap#state#process_filter_message";
+
+        println_json_with_length!(matched, processed, deprecated_method);
+    }
+
+    fn update_all(&self, display_lines: &DisplayLines, matched: usize, processed: usize) {
+        #[allow(non_upper_case_globals)]
+        const deprecated_method: &str = "clap#state#process_filter_message";
+
+        let DisplayLines {
+            lines,
+            indices,
+            truncated_map,
+            icon_added,
+        } = display_lines;
+
+        if truncated_map.is_empty() {
+            println_json_with_length!(
+                deprecated_method,
+                lines,
+                indices,
+                icon_added,
+                matched,
+                processed
+            );
+        } else {
+            println_json_with_length!(
+                deprecated_method,
+                lines,
+                indices,
+                icon_added,
+                matched,
+                processed,
+                truncated_map
+            );
+        }
+    }
+
+    fn on_finished(
+        &self,
+        display_lines: DisplayLines,
+        total_matched: usize,
+        total_processed: usize,
+    ) {
+        let DisplayLines {
+            lines,
+            indices,
+            truncated_map,
+            icon_added,
+        } = display_lines;
+
+        #[allow(non_upper_case_globals)]
+        const deprecated_method: &str = "clap#state#process_filter_message";
+        println_json_with_length!(
+            deprecated_method,
+            lines,
+            indices,
+            icon_added,
+            truncated_map,
+            total_matched,
+            total_processed
+        );
+    }
+}
+
+enum ParSourceInner<I: IntoParallelIterator<Item = Arc<dyn ClapItem>>, R: Read + Send> {
+    Items(I),
+    Lines(R),
+}
+
+/// Perform the matching on a stream of [`Source::File`] and `[Source::Exec]` in parallel.
+fn par_dyn_run_inner<I, R>(
+    query: Query,
+    filter_context: FilterContext,
+    parallel_source: ParSourceInner<I, R>,
+) -> Result<()>
+where
+    I: IntoParallelIterator<Item = Arc<dyn ClapItem>>,
+    R: Read + Send,
+{
+    let FilterContext {
+        icon,
+        number,
+        winwidth,
+        matcher_builder,
+    } = filter_context;
+
+    let matcher = matcher_builder.build(query);
+
+    let winwidth = winwidth.unwrap_or(100);
+    let number = number.unwrap_or(100);
+
+    let ma

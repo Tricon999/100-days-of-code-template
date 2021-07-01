@@ -336,4 +336,70 @@ pub fn par_dyn_run_inprocess<P>(
     par_source: ParallelSource,
     progressor: P,
     stop_signal: Arc<AtomicBool>,
-) -> Result<
+) -> Result<()>
+where
+    P: ProgressUpdate<DisplayLines> + Send,
+{
+    let query: Query = query.into();
+
+    let FilterContext {
+        icon,
+        number,
+        winwidth,
+        matcher_builder,
+    } = filter_context;
+
+    let matcher = matcher_builder.build(query);
+
+    let winwidth = winwidth.unwrap_or(100);
+    let number = number.unwrap_or(100);
+
+    let matched_count = AtomicUsize::new(0);
+    let processed_count = AtomicUsize::new(0);
+
+    let best_items = Mutex::new(BestItems::new(
+        icon,
+        winwidth,
+        number,
+        progressor,
+        Duration::from_millis(200),
+    ));
+
+    let process_item = |item: Arc<dyn ClapItem>, processed: usize| {
+        if let Some(matched_item) = matcher.match_item(item) {
+            let matched = matched_count.fetch_add(1, Ordering::SeqCst);
+
+            // TODO: not use mutex?
+            let mut best_items = best_items.lock();
+            best_items.on_new_match(matched_item, matched, processed);
+            drop(best_items);
+        }
+    };
+
+    let read: Box<dyn std::io::Read + Send> = match par_source {
+        ParallelSource::File(file) => Box::new(std::fs::File::open(file)?),
+        ParallelSource::Exec(exec) => Box::new(exec.detached().stream_stdout()?), // TODO: kill the exec command ASAP/ Run the exec command in another blocking task.
+    };
+
+    // To avoid Err(Custom { kind: InvalidData, error: "stream did not contain valid UTF-8" })
+    // The line stream can contain invalid UTF-8 data.
+    let res = std::io::BufReader::new(read)
+        .lines()
+        .filter_map(Result::ok)
+        .par_bridge()
+        .try_for_each(|line: String| {
+            if stop_signal.load(Ordering::SeqCst) {
+                tracing::debug!(?matcher, "[par_dyn_run_inprocess] stop signal received");
+                // Note that even the stop signal has been received, the thread created by
+                // rayon does not exit actually, it just tries to stop the work ASAP.
+                Err(())
+            } else {
+                let processed = processed_count.fetch_add(1, Ordering::SeqCst);
+                if let Some(item) = to_clap_item(matcher.match_scope(), line) {
+                    process_item(item, processed);
+                }
+                Ok(())
+            }
+        });
+
+    let total_matched = matched_count.in

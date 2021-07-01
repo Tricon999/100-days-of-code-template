@@ -402,4 +402,26 @@ where
             }
         });
 
-    let total_matched = matched_count.in
+    let total_matched = matched_count.into_inner();
+    let total_processed = processed_count.into_inner();
+
+    if res.is_err() {
+        tracing::debug!(
+            ?total_matched,
+            ?total_processed,
+            "[par_dyn_run_inprocess] return early due to the stop signal arrived."
+        );
+        return Ok(());
+    }
+
+    let BestItems {
+        items, progressor, ..
+    } = best_items.into_inner();
+
+    let matched_items = items;
+
+    let display_lines = printer::to_display_lines(matched_items, winwidth, icon);
+    progressor.on_finished(display_lines, total_matched, total_processed);
+
+    Ok(())
+}

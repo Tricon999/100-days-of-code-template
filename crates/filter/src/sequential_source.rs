@@ -52,4 +52,15 @@ pub fn filter_sequential<I: Iterator<Item = Arc<dyn ClapItem>>>(
             std::io::BufReader::new(exec.stream_stdout()?)
                 .lines()
                 .filter_map(Result::ok)
-                .map(|line| Arc::new(SourceItem::from(line
+                .map(|line| Arc::new(SourceItem::from(line)) as Arc<dyn ClapItem>),
+        ),
+    };
+
+    Ok(MatchedItems::from(
+        clap_item_stream
+            .filter_map(|item| matcher.match_item(item))
+            .collect::<Vec<_>>(),
+    )
+    .par_sort()
+    .inner())
+}

@@ -37,4 +37,30 @@ fn main() {
     let mut file = LineWriter::new(file);
 
     let build_line = |filename: &str, const_name: &str| {
-    
+        build_raw_line(&file_under_current_dir(filename), const_name)
+    };
+
+    let line = build_line("exactmatch_map.json", "EXACTMATCH_ICON_TABLE");
+    file.write_all(format!("{line}\n").as_bytes()).unwrap();
+
+    let line = build_line("extension_map.json", "EXTENSION_ICON_TABLE");
+    file.write_all(format!("\n{line}\n").as_bytes()).unwrap();
+
+    let line = build_line("tagkind_map.json", "TAGKIND_ICON_TABLE");
+    file.write_all(format!("\n{line}\n").as_bytes()).unwrap();
+
+    file.write_all(
+        "
+pub fn bsearch_icon_table(c: &str, table: &[(&str, char)]) ->Option<usize> {
+    table.binary_search_by(|&(key, _)| key.cmp(c)).ok()
+}
+\n"
+        .as_bytes(),
+    )
+    .unwrap();
+
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=exactmatch_map.json");
+    println!("cargo:rerun-if-changed=extension_map.json");
+    println!("cargo:rerun-if-changed=tagkind_map.json");
+}

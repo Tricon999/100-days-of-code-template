@@ -49,4 +49,70 @@ impl Symbol {
     ///
     /// TODO: add more tests
     pub fn from_readtags(s: &str) -> Option<Self> {
-        let mut 
+        let mut items = s.split('\t');
+
+        let mut l = Self {
+            name: Some(items.next()?.into()),
+            path: items.next()?.into(),
+            ..Default::default()
+        };
+
+        // https://docs.ctags.io/en/latest/man/ctags-client-tools.7.html#parse-readtags-output
+        if let Some(p) = items
+            .clone()
+            .peekable()
+            .peek()
+            .and_then(|p| p.strip_suffix(";\""))
+        {
+            let search_pattern_used = (p.starts_with('/') && p.ends_with('/'))
+                || (p.len() > 1 && p.starts_with('$') && p.ends_with('$'));
+            if search_pattern_used {
+                let pattern = items.next()?;
+                let pattern_len = pattern.len();
+                // forward search: `/^foo$/`
+                // backward search: `?^foo$?`
+                if p.starts_with("/^") || p.starts_with("?^") {
+                    if p.ends_with("$/") || p.ends_with("$?") {
+                        l.pattern = String::from(&pattern[2..pattern_len - 4]);
+                    } else {
+                        l.pattern = String::from(&pattern[2..pattern_len - 2]);
+                    }
+                } else {
+                    l.pattern = String::from(&pattern[2..pattern_len]);
+                }
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        }
+
+        let maybe_extension = l.path.rsplit_once('.').map(|(_, extension)| extension);
+
+        for item in items {
+            if let Some((k, v)) = item.split_once(':') {
+                if v.is_empty() {
+                    continue;
+                }
+                match k {
+                    "kind" => l.kind = Some(ctags::kinds::compact_kind(maybe_extension, v)),
+                    "scope" => l.scope = Some(v.into()),
+                    "line" => l.line_number = v.parse().expect("line is an integer"),
+                    // Unused for now.
+                    "language" | "roles" | "access" | "signature" => {}
+                    unknown => {
+                        tracing::debug!(line = %s, "Unknown field: {}", unknown);
+                    }
+                }
+            }
+        }
+
+        Some(l)
+    }
+
+    pub fn from_gtags(s: &str) -> Option<Self> {
+        pattern::parse_gtags(s).map(|(line_number, path, pattern)| Self {
+            path: path.into(),
+            pattern: pattern.into(),
+            line_number,
+            ..Default::default()

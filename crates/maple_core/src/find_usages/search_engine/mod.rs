@@ -116,3 +116,57 @@ impl Symbol {
             pattern: pattern.into(),
             line_number,
             ..Default::default()
+        })
+    }
+
+    /// Constructs a grep like line with highlighting indices.
+    fn grep_format_inner(
+        &self,
+        kind: &str,
+        query: &str,
+        ignorecase: bool,
+    ) -> (String, Option<Vec<usize>>) {
+        let mut formatted = format!("[{}]{}:{}:1:", kind, self.path, self.line_number);
+
+        let found = if ignorecase {
+            self.pattern.to_lowercase().find(&query.to_lowercase())
+        } else {
+            self.pattern.find(query)
+        };
+
+        let indices = if let Some(idx) = found {
+            let start = formatted.len() + idx;
+            let end = start + query.len();
+            Some((start..end).collect())
+        } else {
+            None
+        };
+
+        formatted.push_str(&self.pattern);
+
+        (formatted, indices)
+    }
+
+    pub fn grep_format_ctags(&self, query: &str, ignorecase: bool) -> (String, Option<Vec<usize>>) {
+        let kind = self.kind.as_ref().map(|s| s.as_ref()).unwrap_or("tags");
+        self.grep_format_inner(kind, query, ignorecase)
+    }
+
+    pub fn grep_format_gtags(
+        &self,
+        kind: &str,
+        query: &str,
+        ignorecase: bool,
+    ) -> (String, Option<Vec<usize>>) {
+        self.grep_format_inner(kind, query, ignorecase)
+    }
+
+    pub fn into_addressable_usage(self, line: String, indices: Vec<usize>) -> AddressableUsage {
+        AddressableUsage {
+            line,
+            indices,
+            path: self.path,
+            line_number: self.line_number,
+        }
+    }
+}

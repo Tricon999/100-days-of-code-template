@@ -248,3 +248,40 @@ impl<'a> CacheableCommand<'a> {
             icon_added: self.icon.enabled(),
         })
     }
+
+    /// Execute the command and redirect the stdout to a file.
+    pub fn execute(&mut self) -> std::io::Result<ExecInfo> {
+        let cache_file_path = self.shell_cmd.cache_file_path()?;
+
+        write_stdout_to_file(self.std_cmd, &cache_file_path)?;
+
+        let lines_iter = read_first_lines(&cache_file_path, 100)?;
+        let lines = if let Some(icon_kind) = self.icon.icon_kind() {
+            lines_iter.map(|x| icon_kind.add_icon_to_text(x)).collect()
+        } else {
+            lines_iter.collect()
+        };
+
+        let total = count_lines(std::fs::File::open(&cache_file_path)?)?;
+
+        // Store the cache file if the total number of items exceeds the threshold, so that the
+        // cache can be reused if the identical command is executed again.
+        if total > self.output_threshold {
+            let digest = Digest::new(self.shell_cmd.clone(), total, cache_file_path.clone());
+
+            {
+                let cache_info = crate::datastore::CACHE_INFO_IN_MEMORY.clone();
+                let mut cache_info = cache_info.lock();
+                cache_info.limited_push(digest)?;
+            }
+        }
+
+        Ok(ExecInfo {
+            using_cache: false,
+            total,
+            tempfile: Some(cache_file_path),
+            lines,
+            icon_added: self.icon.enabled(),
+        })
+    }
+}

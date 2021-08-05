@@ -134,4 +134,8 @@ pub async fn search(query: String, hidden: bool, matcher: Matcher, search_contex
 
     tracing::debug!(
         ?query,
-    
+        total_matched,
+        total_processed,
+        "Searching is completed in {elapsed:?}ms"
+    );
+}

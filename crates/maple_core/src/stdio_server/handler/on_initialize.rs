@@ -97,4 +97,67 @@ async fn initialize_provider_source(ctx: &Context) -> Result<ProviderSource> {
             Value::String(command) => {
                 // Always try recreating the source.
                 if ctx.provider_id() == "files" {
-                    let mut tokio_cmd = crate::process::tokio::TokioCommand::new
+                    let mut tokio_cmd = crate::process::tokio::TokioCommand::new(command);
+                    tokio_cmd.current_dir(&ctx.cwd);
+                    let lines = tokio_cmd.lines().await?;
+                    return Ok(to_small_provider_source(lines));
+                }
+
+                let shell_cmd = ShellCommand::new(command, ctx.cwd.to_path_buf());
+                let cache_file = shell_cmd.cache_file_path()?;
+
+                const DIRECT_CREATE_NEW_SOURCE: &[&str] = &["files"];
+
+                let direct_create_new_source =
+                    DIRECT_CREATE_NEW_SOURCE.contains(&ctx.provider_id());
+
+                let provider_source = if direct_create_new_source || ctx.env.no_cache {
+                    execute_and_write_cache(&shell_cmd.command, cache_file).await?
+                } else {
+                    match shell_cmd.cache_digest() {
+                        Some(digest) => ProviderSource::CachedFile {
+                            total: digest.total,
+                            path: digest.cached_path,
+                            refreshed: false,
+                        },
+                        None => execute_and_write_cache(&shell_cmd.command, cache_file).await?,
+                    }
+                };
+
+                if let ProviderSource::CachedFile { path, .. } = &provider_source {
+                    ctx.vim.set_var("g:__clap_forerunner_tempfile", path)?;
+                }
+
+                return Ok(provider_source);
+            }
+            // Source is a List: g:__t_list, g:__t_func_list
+            Value::Array(arr) => {
+                let lines = arr
+                    .into_iter()
+                    .filter_map(|v| {
+                        if let Value::String(s) = v {
+                            Some(s)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                return Ok(to_small_provider_source(lines));
+            }
+            _ => {}
+        }
+    }
+
+    Ok(ProviderSource::Unactionable)
+}
+
+pub async fn initialize_provider(ctx: &Context) -> Result<()> {
+    const TIMEOUT: Duration = Duration::from_millis(300);
+
+    // Skip the initialization.
+    match ctx.provider_id() {
+        "grep" | "live_grep" => return Ok(()),
+        _ => {}
+    }
+
+    match tokio::time::timeout(TIMEOUT, initialize_provider_source(ctx)).await {

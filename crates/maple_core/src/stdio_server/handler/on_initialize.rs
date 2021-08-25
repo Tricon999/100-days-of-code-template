@@ -161,3 +161,53 @@ pub async fn initialize_provider(ctx: &Context) -> Result<()> {
     }
 
     match tokio::time::timeout(TIMEOUT, initialize_provider_source(ctx)).await {
+        Ok(Ok(provider_source)) => {
+            if let Some(total) = provider_source.total() {
+                ctx.vim.set_var("g:clap.display.initial_size", total)?;
+            }
+
+            if let Some(items) = provider_source.try_skim(ctx.provider_id(), 100) {
+                let DisplayLines {
+                    lines,
+                    icon_added,
+                    truncated_map,
+                    ..
+                } = printer::to_display_lines(items, ctx.env.display_winwidth, ctx.env.icon);
+
+                let using_cache = provider_source.using_cache();
+
+                ctx.vim.exec(
+                    "clap#state#init_display",
+                    json!([lines, truncated_map, icon_added, using_cache]),
+                )?;
+            }
+
+            ctx.set_provider_source(provider_source);
+        }
+        Ok(Err(e)) => tracing::error!(?e, "Error occurred on creating session"),
+        Err(_) => {
+            // The initialization was not super fast.
+            tracing::debug!(timeout = ?TIMEOUT, "Did not receive value in time");
+
+            let source_cmd: Vec<String> = ctx.vim.bare_call("provider_source_cmd").await?;
+            let maybe_source_cmd = source_cmd.into_iter().next();
+            if let Some(source_cmd) = maybe_source_cmd {
+                ctx.set_provider_source(ProviderSource::Command(source_cmd));
+            }
+
+            /* no longer necessary for grep provider.
+            // Try creating cache for some potential heavy providers.
+            match context.provider_id() {
+                "grep" | "live_grep" => {
+                    context.set_provider_source(ProviderSource::Command(RG_EXEC_CMD.to_string()));
+
+                    let context = context.clone();
+                    let rg_cmd = RgTokioCommand::new(context.cwd.to_path_buf());
+                    let job_id = utils::calculate_hash(&rg_cmd);
+                    job::try_start(
+                        async move {
+                            if let Ok(digest) = rg_cmd.create_cache().await {
+                                let new = ProviderSource::CachedFile {
+                                    total: digest.total,
+                                    path: digest.cached_path,
+                                    refres

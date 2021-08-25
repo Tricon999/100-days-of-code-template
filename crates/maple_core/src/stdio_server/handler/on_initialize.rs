@@ -210,4 +210,21 @@ pub async fn initialize_provider(ctx: &Context) -> Result<()> {
                                 let new = ProviderSource::CachedFile {
                                     total: digest.total,
                                     path: digest.cached_path,
-                                    refres
+                                    refreshed: true,
+                                };
+                                if !context.terminated.load(Ordering::SeqCst) {
+                                    context.set_provider_source(new);
+                                }
+                            }
+                        },
+                        job_id,
+                    );
+                }
+                _ => {}
+            }
+            */
+        }
+    }
+
+    Ok(())
+}

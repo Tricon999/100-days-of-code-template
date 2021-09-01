@@ -79,4 +79,42 @@ impl Client {
                                 Call::Notification(notification) => {
                                     // Avoid spawn too frequently if user opens and
                                     // closes the provider frequently in a very short time.
-                                    
+                                    match Event::from_method(&notification.method) {
+                                        Event::Provider(ProviderEvent::NewSession) => {
+                                            pending_notification.replace(notification);
+
+                                            notification_dirty = true;
+                                            notification_timer
+                                                .as_mut()
+                                                .reset(Instant::now() + notification_delay);
+                                        }
+                                        _ => {
+                                            if let Some(session_id) = notification.session_id {
+                                                if self.session_manager_mutex.lock().exists(session_id) {
+                                                    let client = self.clone();
+
+                                                    tokio::spawn(async move {
+                                                        if let Err(err) =
+                                                            client.process_notification(notification).await
+                                                        {
+                                                            tracing::error!(
+                                                                ?session_id,
+                                                                ?err,
+                                                                "Error at processing Vim Notification"
+                                                            );
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                Call::MethodCall(method_call) => {
+                                    let client = self.clone();
+
+                                    tokio::spawn(async move {
+                                        let id = method_call.id;
+
+                                        match client.process_method_call(method_call).await {
+                                            Ok(Some(result)) => {
+                                                // Se

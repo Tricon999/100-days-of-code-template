@@ -117,4 +117,51 @@ impl Client {
 
                                         match client.process_method_call(method_call).await {
                                             Ok(Some(result)) => {
-                                                // Se
+                                                // Send back the result of method call.
+                                                let state = client.state_mutex.lock();
+                                                if let Err(err) = state.vim.send(id, Ok(result)) {
+                                                    tracing::debug!(?err, "Failed to send the output result");
+                                                }
+                                            }
+                                            Ok(None) => {}
+                                            Err(err) => {
+                                                tracing::error!(?err, "Error at processing Vim MethodCall");
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                        None => break, // channel has closed.
+                    }
+                }
+                _ = notification_timer.as_mut(), if notification_dirty => {
+                    notification_dirty = false;
+                    notification_timer.as_mut().reset(Instant::now() + NEVER);
+
+                    if let Some(notification) = pending_notification.take() {
+                        let last_session_id = notification
+                            .session_id
+                            .unwrap_or_default()
+                            .saturating_sub(1);
+                        self.session_manager_mutex.lock().try_exit(last_session_id);
+                        let session_id = notification.session_id;
+                        if let Err(err) = self.process_notification(notification).await {
+                            tracing::error!(?session_id, ?err, "Error at processing Vim Notification");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Process a Vim notification message.
+    async fn process_notification(&self, notification: Notification) -> Result<()> {
+        let session_id = || {
+            notification
+                .session_id
+                .ok_or_else(|| anyhow!("Notification must contain `session_id` field"))
+        };
+
+        match Event::from_method(&notification.method) {
+            Event::Provider(provider_event) => ma

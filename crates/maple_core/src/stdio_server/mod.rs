@@ -217,4 +217,10 @@ impl Client {
             }
 
             _ => Some(json!({
-                "error": format!("Unknown method call: {}"
+                "error": format!("Unknown method call: {}", msg.method)
+            })),
+        };
+
+        Ok(value)
+    }
+}

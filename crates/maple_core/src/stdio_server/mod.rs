@@ -164,4 +164,57 @@ impl Client {
         };
 
         match Event::from_method(&notification.method) {
-            Event::Provider(provider_event) => ma
+            Event::Provider(provider_event) => match provider_event {
+                ProviderEvent::NewSession => {
+                    let provider_id = self.vim.provider_id().await?;
+                    let ctx = Context::new(notification.params, self.vim.clone()).await?;
+                    let provider = create_provider(&provider_id, &ctx).await?;
+                    let session_manager = self.session_manager_mutex.clone();
+                    let mut session_manager = session_manager.lock();
+                    session_manager.new_session(session_id()?, provider, ctx);
+                }
+                ProviderEvent::Exit => {
+                    let mut session_manager = self.session_manager_mutex.lock();
+                    session_manager.exit_session(session_id()?);
+                }
+                to_send => {
+                    let session_manager = self.session_manager_mutex.lock();
+                    session_manager.send(session_id()?, to_send);
+                }
+            },
+            Event::Key(key_event) => {
+                let session_manager = self.session_manager_mutex.lock();
+                session_manager.send(session_id()?, ProviderEvent::Key(key_event));
+            }
+            Event::Other(other_method) => {
+                match other_method.as_str() {
+                    "initialize_global_env" => {
+                        // Should be called only once.
+                        notification.initialize(self.vim.clone()).await?;
+                    }
+                    "note_recent_files" => notification.note_recent_file().await?,
+                    _ => return Err(anyhow!("Unknown notification: {notification:?}")),
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Process a Vim method call message.
+    async fn process_method_call(&self, method_call: MethodCall) -> Result<Option<Value>> {
+        let msg = method_call;
+
+        let value = match msg.method.as_str() {
+            "preview/file" => Some(msg.preview_file().await?),
+            "quickfix" => Some(msg.preview_quickfix().await?),
+
+            // Deprecated but not remove them for now.
+            "on_move" => {
+                let session_manager = self.session_manager_mutex.lock();
+                session_manager.send(msg.session_id, ProviderEvent::OnMove);
+                None
+            }
+
+            _ => Some(json!({
+                "error": format!("Unknown method call: {}"

@@ -68,4 +68,78 @@ impl RpcClient {
     }
 
     /// Calls `call(method, params)` into Vim and return the result.
-    pub async fn request<R: Des
+    pub async fn request<R: DeserializeOwned>(
+        &self,
+        method: impl AsRef<str>,
+        params: impl Serialize,
+    ) -> Result<R> {
+        let id = self.id.fetch_add(1, Ordering::SeqCst);
+        let method_call = MethodCall {
+            id,
+            method: method.as_ref().to_owned(),
+            // call(method, args) where args expects a List in Vim, hence convert the params
+            // to List unconditionally.
+            params: to_array_or_none(params)?,
+            session_id: 0u64, // Unused for now.
+        };
+        let (tx, rx) = oneshot::channel();
+        self.output_reader_tx.send((id, tx))?;
+        self.output_writer_tx
+            .send(RawMessage::MethodCall(method_call))?;
+        match rx.await? {
+            Output::Success(ok) => Ok(serde_json::from_value(ok.result)?),
+            Output::Failure(err) => Err(anyhow!("RpcClient request error: {:?}", err)),
+        }
+    }
+
+    /// Sends a notification message to Vim.
+    pub fn notify(&self, method: impl AsRef<str>, params: impl Serialize) -> Result<()> {
+        let notification = Notification {
+            method: method.as_ref().to_owned(),
+            // call(method, args) where args expects a List in Vim, hence convert the params
+            // to List unconditionally.
+            params: to_array_or_none(params)?,
+            session_id: None,
+        };
+
+        self.output_writer_tx
+            .send(RawMessage::Notification(notification))?;
+
+        Ok(())
+    }
+
+    /// Sends the response from Rust to Vim.
+    pub fn output(&self, id: u64, output_result: Result<impl Serialize>) -> Result<()> {
+        let output = match output_result {
+            Ok(ok) => Output::Success(Success {
+                id,
+                result: serde_json::to_value(ok)?,
+            }),
+            Err(err) => Output::Failure(Failure {
+                id,
+                error: Error {
+                    code: ErrorCode::InternalError,
+                    message: err.to_string(),
+                    data: None,
+                },
+            }),
+        };
+
+        self.output_writer_tx.send(RawMessage::Output(output))?;
+
+        Ok(())
+    }
+}
+
+/// Keep reading and processing the line from stdin.
+fn loop_read(
+    reader: impl BufRead,
+    mut output_reader_rx: UnboundedReceiver<(u64, oneshot::Sender<Output>)>,
+    sink: &UnboundedSender<Call>,
+) -> Result<()> {
+    let mut pending_outputs = HashMap::new();
+
+    let mut reader = reader;
+    loop {
+        let mut line = String::new();
+  

@@ -142,4 +142,55 @@ fn loop_read(
     let mut reader = reader;
     loop {
         let mut line = String::new();
-  
+        match reader.read_line(&mut line) {
+            Ok(number) => {
+                if number > 0 {
+                    match serde_json::from_str::<RawMessage>(line.trim()) {
+                        Ok(raw_message) => match raw_message {
+                            RawMessage::MethodCall(method_call) => {
+                                sink.send(Call::MethodCall(method_call))?;
+                            }
+                            RawMessage::Notification(notification) => {
+                                sink.send(Call::Notification(notification))?;
+                            }
+                            RawMessage::Output(output) => {
+                                while let Ok((id, tx)) = output_reader_rx.try_recv() {
+                                    pending_outputs.insert(id, tx);
+                                }
+
+                                if let Some(tx) = pending_outputs.remove(output.id()) {
+                                    tx.send(output).map_err(|output| {
+                                        anyhow!("Failed to send output: {:?}", output)
+                                    })?;
+                                }
+                            }
+                        },
+                        Err(err) => {
+                            tracing::error!(error = ?err, ?line, "Invalid raw Vim message");
+                        }
+                    }
+                } else {
+                    println!("EOF reached");
+                }
+            }
+            Err(error) => println!("Failed to read_line, error: {error}"),
+        }
+    }
+}
+
+/// Keep writing the response from Rust backend to Vim via stdout.
+async fn loop_write(writer: impl Write, mut rx: UnboundedReceiver<RawMessage>) -> Result<()> {
+    let mut writer = writer;
+
+    while let Some(msg) = rx.recv().await {
+        let s = serde_json::to_string(&msg)?;
+        if s.len() < 100 {
+            tracing::trace!(?msg, "=> Vim");
+        } else {
+            tracing::trace!(msg_size = ?s.len(), msg_kind = msg.kind(), method = ?msg.method(), "=> Vim");
+        }
+        // Use different convention for two reasons,
+        // 1. If using '\r\ncontent', nvim will receive output as `\r` + `content`, while vim
+        // receives `content`.
+        // 2. Without last line ending, vim output handler won't be triggered.
+        write!(writer, "Content-length: {}\n\n{}\n", s.len()

@@ -193,4 +193,23 @@ async fn loop_write(writer: impl Write, mut rx: UnboundedReceiver<RawMessage>) -
         // 1. If using '\r\ncontent', nvim will receive output as `\r` + `content`, while vim
         // receives `content`.
         // 2. Without last line ending, vim output handler won't be triggered.
-        write!(writer, "Content-length: {}\n\n{}\n", s.len()
+        write!(writer, "Content-length: {}\n\n{}\n", s.len(), s)?;
+        writer.flush()?;
+    }
+
+    Ok(())
+}
+
+fn to_array_or_none(value: impl Serialize) -> Result<Params> {
+    let json_value = serde_json::to_value(value)?;
+
+    let params = match json_value {
+        Value::Null => Params::None,
+        Value::Array(vec) => Params::Array(vec),
+        Value::Bool(_) | Value::Number(_) | Value::String(_) | Value::Object(_) => {
+            Params::Array(vec![json_value])
+        }
+    };
+
+    Ok(params)
+}

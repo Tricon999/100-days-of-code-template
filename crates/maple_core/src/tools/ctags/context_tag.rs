@@ -116,3 +116,107 @@ pub fn current_context_tag(file: &Path, at: usize) -> Option<BufferTag> {
     let superset_tags = if *CTAGS_HAS_JSON_FEATURE.deref() {
         let cmd = subprocess_cmd_in_json_format(file);
         collect_superset_context_tags(cmd, BufferTag::from_ctags_json, at).ok()?
+    } else {
+        let cmd = subprocess_cmd_in_raw_format(file);
+        collect_superset_context_tags(cmd, BufferTag::from_ctags_raw, at).ok()?
+    };
+
+    find_context_tag(superset_tags, at)
+}
+
+pub fn buffer_tags_lines(
+    file: impl AsRef<std::ffi::OsStr>,
+    force_raw: bool,
+) -> Result<Vec<String>> {
+    let (tags, max_name_len) = if *CTAGS_HAS_JSON_FEATURE.deref() && !force_raw {
+        let cmd = subprocess_cmd_in_json_format(file);
+        collect_buffer_tags(cmd, BufferTag::from_ctags_json)?
+    } else {
+        let cmd = subprocess_cmd_in_raw_format(file);
+        collect_buffer_tags(cmd, BufferTag::from_ctags_raw)?
+    };
+
+    Ok(tags
+        .par_iter()
+        .map(|s| s.format_buffer_tag(max_name_len))
+        .collect::<Vec<_>>())
+}
+
+pub fn buffer_tag_items(
+    file: impl AsRef<std::ffi::OsStr>,
+    force_raw: bool,
+) -> Result<Vec<Arc<dyn ClapItem>>> {
+    let (tags, max_name_len) = if *CTAGS_HAS_JSON_FEATURE.deref() && !force_raw {
+        let cmd = subprocess_cmd_in_json_format(file);
+        collect_buffer_tags(cmd, BufferTag::from_ctags_json)?
+    } else {
+        let cmd = subprocess_cmd_in_raw_format(file);
+        collect_buffer_tags(cmd, BufferTag::from_ctags_raw)?
+    };
+
+    Ok(tags
+        .into_par_iter()
+        .map(|tag| Arc::new(tag.into_buffer_tag_item(max_name_len)) as Arc<dyn ClapItem>)
+        .collect::<Vec<_>>())
+}
+
+fn collect_buffer_tags(
+    cmd: SubprocessCommand,
+    parse_tag: impl Fn(&str) -> Option<BufferTag> + Send + Sync,
+) -> Result<(Vec<BufferTag>, usize)> {
+    let max_name_len = AtomicUsize::new(0);
+
+    let tags = crate::process::subprocess::exec(cmd)?
+        .flatten()
+        .par_bridge()
+        .filter_map(|s| {
+            let maybe_tag = parse_tag(&s);
+            if let Some(ref tag) = maybe_tag {
+                max_name_len.fetch_max(tag.name.len(), Ordering::SeqCst);
+            }
+            maybe_tag
+        })
+        .collect::<Vec<_>>();
+
+    Ok((tags, max_name_len.into_inner()))
+}
+
+fn collect_superset_context_tags(
+    cmd: SubprocessCommand,
+    parse_tag: impl Fn(&str) -> Option<BufferTag> + Send + Sync,
+    target_lnum: usize,
+) -> Result<Vec<BufferTag>> {
+    let mut tags = crate::process::subprocess::exec(cmd)?
+        .flatten()
+        .par_bridge()
+        .filter_map(|s| parse_tag(&s))
+        // the line of method/function name is lower.
+        .filter(|tag| tag.line <= target_lnum && CONTEXT_SUPERSET.contains(&tag.kind.as_ref()))
+        .collect::<Vec<_>>();
+
+    tags.par_sort_unstable_by_key(|x| x.line);
+
+    Ok(tags)
+}
+
+async fn collect_superset_context_tags_async(
+    cmd: TokioCommand,
+    parse_tag: impl Fn(&str) -> Option<BufferTag> + Send + Sync,
+    target_lnum: usize,
+) -> Result<Vec<BufferTag>> {
+    let mut cmd = cmd;
+
+    let mut tags = cmd
+        .output()
+        .await?
+        .stdout
+        .par_split(|x| x == &b'\n')
+        .filter_map(|s| parse_tag(&String::from_utf8_lossy(s)))
+        // the line of method/function name is lower.
+        .filter(|tag| tag.line <= target_lnum && CONTEXT_SUPERSET.contains(&tag.kind.as_ref()))
+        .collect::<Vec<_>>();
+
+    tags.par_sort_unstable_by_key(|x| x.line);
+
+    Ok(tags)
+}

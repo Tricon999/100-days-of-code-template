@@ -69,4 +69,16 @@ mod tests {
     #[test]
     fn test_deserialize_project_tag() {
         let data = r#"{"_type": "tag", "name": "Exec", "path": "crates/maple_cli/src/cmd/exec.rs", "pattern": "/^pub struct Exec {$/", "line": 10, "kind": "struct"}"#;
-        let tag: ProjectTag = serde_json::from_str(data)
+        let tag: ProjectTag = serde_json::from_str(data).unwrap();
+        assert_eq!(
+            tag,
+            ProjectTag {
+                name: "Exec".into(),
+                path: "crates/maple_cli/src/cmd/exec.rs".into(),
+                pattern: "/^pub struct Exec {$/".into(),
+                line: 10,
+                kind: "struct".into()
+            }
+        );
+    }
+}

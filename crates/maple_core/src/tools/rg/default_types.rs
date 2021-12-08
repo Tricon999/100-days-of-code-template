@@ -229,4 +229,16 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ]),
     ("xz", &["*.xz", "*.txz"]),
     ("yacc", &["*.y"]),
-    ("yaml", &["*.y
+    ("yaml", &["*.yaml", "*.yml"]),
+    ("z", &["*.Z"]),
+    ("zig", &["*.zig"]),
+    ("zsh", &[
+        ".zshenv", "zshenv",
+        ".zlogin", "zlogin",
+        ".zlogout", "zlogout",
+        ".zprofile", "zprofile",
+        ".zshrc", "zshrc",
+        "*.zsh",
+    ]),
+    ("zstd", &["*.zst", "*.zstd"]),
+];

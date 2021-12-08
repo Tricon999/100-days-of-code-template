@@ -44,4 +44,39 @@ impl Serialize for NiceDuration {
     fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeStruct;
 
-        let mut state = ser.serialize_struct("Duration"
+        let mut state = ser.serialize_struct("Duration", 2)?;
+        state.serialize_field("secs", &self.0.as_secs())?;
+        state.serialize_field("nanos", &self.0.subsec_nanos())?;
+        state.serialize_field("human", &format!("{self}"))?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for NiceDuration {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct StdDuration {
+            secs: u64,
+            nanos: u32,
+        }
+
+        let deserialized = StdDuration::deserialize(deserializer)?;
+
+        Ok(NiceDuration(time::Duration::new(
+            deserialized.secs,
+            deserialized.nanos,
+        )))
+    }
+}
+
+#[test]
+fn test_nice_duration_serde() {
+    let duration = time::Duration::new(10, 20);
+    let nice_duration = NiceDuration(duration);
+    let seralized = serde_json::to_string(&nice_duration).unwrap();
+    let deserialized: NiceDuration = serde_json::from_str(&seralized).unwrap();
+    assert_eq!(deserialized, NiceDuration(time::Duration::new(10, 20)));
+}

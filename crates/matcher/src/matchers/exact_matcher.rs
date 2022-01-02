@@ -59,4 +59,28 @@ impl ExactMatcher {
                     let white_space_len = total_len.saturating_sub(trimmed.len());
                     if trimmed.ends_with(sub_query) {
                         // In case of underflow, we use i32 here.
-                        let mut match_
+                        let mut match_start = total_len as i32
+                            - sub_query.len() as i32
+                            - 1i32
+                            - white_space_len as i32;
+                        let new_len = indices.len() + sub_query.len();
+                        indices.resize_with(new_len, || {
+                            match_start += 1;
+                            match_start as usize
+                        });
+                        exact_score += sub_query.len() as Score;
+                    } else {
+                        return None;
+                    }
+                }
+            }
+        }
+
+        // Add an exact search term bonus whether the exact matches exist or not.
+        //
+        // The shorter search line has a higher score.
+        exact_score += (512 / full_search_line.len()) as Score;
+
+        Some((exact_score, indices))
+    }
+}

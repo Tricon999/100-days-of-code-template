@@ -46,4 +46,15 @@ impl FuzzyMatcher {
             let query = &term.text;
             if let Some(MatchResult { score, indices }) =
                 self.fuzzy_algo
-      
+                    .fuzzy_match(query, fuzzy_text, self.case_matching)
+            {
+                fuzzy_score += score;
+                fuzzy_indices.extend(indices);
+            } else {
+                return None;
+            }
+        }
+
+        Some((fuzzy_score, fuzzy_indices))
+    }
+}

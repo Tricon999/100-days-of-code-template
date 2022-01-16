@@ -113,4 +113,85 @@ fn test_exact_search_term_bonus() {
     let matched_item2 = matcher
         .match_item(Arc::new(lines[1]) as Arc<dyn ClapItem>)
         .unwrap();
-    asser
+    assert!(matched_item1.indices == matched_item2.indices);
+    assert!(matched_item1.rank < matched_item2.rank);
+}
+
+#[test]
+fn test_search_syntax() {
+    let items = vec![
+        Arc::new("autoload/clap/provider/search_history.vim"),
+        Arc::new("autoload/clap/provider/files.vim"),
+        Arc::new("vim-clap/crates/matcher/src/algo.rs"),
+        Arc::new("pythonx/clap/scorer.py"),
+    ];
+
+    let match_with_query = |query: Query| {
+        let matcher = MatcherBuilder::new()
+            .bonuses(vec![Bonus::FileName])
+            .build(query);
+        items
+            .clone()
+            .into_iter()
+            .map(|item| {
+                let item: Arc<dyn ClapItem> = item;
+                matcher.match_item(item)
+            })
+            .map(|maybe_matched_item| {
+                if let Some(matched_item) = maybe_matched_item {
+                    Some(MatchResult::new(matched_item.rank[0], matched_item.indices))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let query: Query = "clap .vim$ ^auto".into();
+    let match_results: Vec<_> = match_with_query(query);
+    assert_eq!(
+        vec![
+            Some(MatchResult::new(
+                763,
+                [0, 1, 2, 3, 9, 10, 11, 12, 37, 38, 39, 40].to_vec()
+            )),
+            Some(MatchResult::new(
+                776,
+                [0, 1, 2, 3, 9, 10, 11, 12, 28, 29, 30, 31].to_vec()
+            )),
+            None,
+            None
+        ],
+        match_results
+    );
+
+    let query: Query = ".rs$".into();
+    let match_results: Vec<_> = match_with_query(query);
+    assert_eq!(
+        vec![
+            None,
+            None,
+            Some(MatchResult::new(24, [32, 33, 34].to_vec())),
+            None
+        ],
+        match_results
+    );
+
+    let query: Query = "py".into();
+    let match_results: Vec<_> = match_with_query(query);
+    assert_eq!(
+        vec![
+            Some(MatchResult::new(138, [14, 36].to_vec())),
+            None,
+            None,
+            Some(MatchResult::new(383, [0, 1].to_vec()))
+        ],
+        match_results
+    );
+
+    let query: Query = "'py".into();
+    let match_results: Vec<_> = match_with_query(query);
+    assert_eq!(
+        vec![
+            None,
+            None,

@@ -89,4 +89,80 @@ pub fn extract_jump_line_info(line: &str) -> Option<(&str, &str, usize, usize)> 
     let cap = DUMB_JUMP_LINE.captures(line)?;
     let def_kind = cap.get(1).map(|x| x.as_str())?;
     let fpath = cap.get(2).map(|x| x.as_str())?;
-    let str2nr = |idx: usize| cap.get(idx).map(|x| x.as_str()).a
+    let str2nr = |idx: usize| cap.get(idx).map(|x| x.as_str()).and_then(parse_lnum);
+    let lnum = str2nr(3)?;
+    let col = str2nr(4)?;
+    Some((def_kind, fpath, lnum, col))
+}
+
+pub fn extract_grep_file_path(line: &str) -> Option<&str> {
+    GREP_POS.captures(line)?.get(1).map(|x| x.as_str())
+}
+
+/// Returns fpath part in grep line.
+pub fn extract_fpath_from_grep_line(line: &str) -> Option<&str> {
+    GREP_POS
+        .captures(line)
+        .and_then(|cap| cap.get(1).map(|x| x.as_str()))
+}
+
+/// Returns the file name as well as its offset from the complete file path.
+pub fn extract_file_name(file_path: &str) -> Option<(&str, usize)> {
+    std::path::Path::new(file_path).file_name().map(|fname| {
+        let file_name_start = file_path.len() - fname.len();
+        (&file_path[file_name_start..], file_name_start)
+    })
+}
+
+#[inline]
+fn parse_lnum(lnum: &str) -> Option<usize> {
+    lnum.parse::<usize>().ok()
+}
+
+pub fn extract_commit_rev(line: &str) -> Option<&str> {
+    let cap = COMMIT_RE.captures(line)?;
+    cap.get(1).map(|x| x.as_str())
+}
+
+pub fn extract_proj_tags(line: &str) -> Option<(usize, &str)> {
+    let cap = PROJ_TAGS.captures(line)?;
+    let lnum = cap.get(2).map(|x| x.as_str()).and_then(parse_lnum)?;
+    let fpath = cap.get(4).map(|x| x.as_str())?;
+    Some((lnum, fpath))
+}
+
+pub fn extract_proj_tags_kind(line: &str) -> Option<&str> {
+    let cap = PROJ_TAGS.captures(line)?;
+    let kind = cap.get(3).map(|x| x.as_str())?;
+    Some(kind)
+}
+
+pub fn extract_buffer_tags_kind(line: &str) -> Option<&str> {
+    let cap = BUFFER_TAGS.captures(line)?;
+    let kind = cap.get(2).map(|x| x.as_str())?;
+    Some(kind)
+}
+
+pub fn extract_buf_tags_lnum(line: &str) -> Option<usize> {
+    let cap = BUFFER_TAGS.captures(line)?;
+    cap.get(1).map(|x| x.as_str()).and_then(parse_lnum)
+}
+
+pub fn extract_blines_lnum(line: &str) -> Option<usize> {
+    line.split_whitespace().next().and_then(parse_lnum)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_grep_regex() {
+        let line = "install.sh:1:5:#!/usr/bin/env bash";
+        let e = extract_grep_position(line).unwrap();
+        assert_eq!(("install.sh", 1, 5, "#!/usr/bin/env bash"), e);
+
+        let path = extract_grep_file_path(line).unwrap();
+        assert_eq!(path, "install.sh");
+
+        let line = r#"/home/xlc/.vim/plugged/vim-clap/crates/p

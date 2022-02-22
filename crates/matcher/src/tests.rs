@@ -195,3 +195,53 @@ fn test_search_syntax() {
         vec![
             None,
             None,
+            None,
+            Some(MatchResult::new(25, [0, 1].to_vec()))
+        ],
+        match_results
+    );
+}
+
+#[test]
+fn test_word_matcher() {
+    let line = r#"Cargo.toml:19:24:clippy = { path = "crates/cli" }"#;
+    let query: Query = "\"cli".into();
+
+    let matcher = MatcherBuilder::new().build(query);
+
+    let match_result = matcher
+        .match_item(Arc::new(line) as Arc<dyn ClapItem>)
+        .unwrap();
+
+    // match cli instead of clippy
+    assert_eq!(
+        "cli".to_string(),
+        line.chars()
+            .enumerate()
+            .filter_map(|(idx, c)| if match_result.indices.contains(&idx) {
+                Some(c)
+            } else {
+                None
+            })
+            .collect::<String>()
+    );
+}
+
+#[test]
+fn test_rank() {
+    let items = vec![
+        Arc::new("pythonx/clap/fuzzymatch-rs/.cargo/config"),
+        Arc::new("crates/maple_core/src/config.rs"),
+        Arc::new("config.toml"),
+        Arc::new(".editorconfig"),
+    ];
+
+    let query: Query = "config".into();
+    let matcher = MatcherBuilder::new().build(query);
+
+    for item in items {
+        let matched_item = matcher.match_item(item).unwrap();
+
+        println!("{matched_item:?}");
+    }
+}

@@ -225,4 +225,61 @@ mod tests {
         let line = r#"sorted_dict:18                 [variable@crates/icon/update_constants.py] sorted_dict = {k: disordered[k] for k in sorted(disordered)}"#;
         assert_eq!(
             (18, "crates/icon/update_constants.py"),
-            extra
+            extract_proj_tags(line).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_buffer_tags_regexp() {
+        let line = r#" extract_fpath_from_grep_line:58  [function]  pub fn extract_fpath_from_grep_line(line: &str) -> Option<&str> {"#;
+        assert_eq!(Some(58), extract_buf_tags_lnum(line));
+    }
+
+    #[test]
+    fn test_blines_lnum() {
+        let line = r#" 103       call clap#helper#echo_error('Provider without source must specify on_moved, but only has: '.keys(provider_info))"#;
+        assert_eq!(Some(103), extract_blines_lnum(line));
+    }
+
+    #[test]
+    fn test_parse_rev() {
+        let line =
+            "* 2019-10-18 8ed4391 Rename sign and rooter related options (#65) (Liu-Cheng Xu)";
+        assert_eq!(extract_commit_rev(line), Some("8ed4391"));
+        let line = "2019-10-18 8ed4391 Rename sign and rooter related options (#65) (Liu-Cheng Xu)";
+        assert_eq!(extract_commit_rev(line), Some("8ed4391"));
+        let line = "2019-12-29 3f0d00c Add forerunner job status sign and a delay timer for running maple (#184) (Liu-Cheng Xu)";
+        assert_eq!(extract_commit_rev(line), Some("3f0d00c"));
+    }
+
+    #[test]
+    fn test_gtags() {
+        let line = "run               101 crates/maple_cli/src/app.rs pub async fn run(self) -> Result<()> {";
+        assert_eq!(
+            parse_gtags(line),
+            Some((
+                101,
+                "crates/maple_cli/src/app.rs",
+                "pub async fn run(self) -> Result<()> {"
+            ))
+        )
+    }
+
+    #[test]
+    fn test_strip_grep_filepath() {
+        let line = r#"crates/pattern/src/lib.rs:51:1:/// // crates/printer/src/lib.rs:199:26:        let query = "srlisrlisrsr";"#;
+        assert_eq!(
+            extract_grep_pattern(line).unwrap(),
+            (
+                "/// // crates/printer/src/lib.rs:199:26:        let query = \"srlisrlisrsr\";",
+                31
+            )
+        );
+    }
+
+    #[test]
+    fn test_extract_file_name() {
+        let line = "crates/maple_cli/src/app.rs";
+        assert_eq!(("app.rs", 21), extract_file_name(line).unwrap());
+    }
+}

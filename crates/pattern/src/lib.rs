@@ -165,4 +165,64 @@ mod tests {
         let path = extract_grep_file_path(line).unwrap();
         assert_eq!(path, "install.sh");
 
-        let line = r#"/home/xlc/.vim/plugged/vim-clap/crates/p
+        let line = r#"/home/xlc/.vim/plugged/vim-clap/crates/pattern/src/lib.rs:36:1:/// // crates/printer/src/lib.rs:199:26:        let query = "srlisrlisrsr"#;
+        assert_eq!(
+            "/home/xlc/.vim/plugged/vim-clap/crates/pattern/src/lib.rs",
+            extract_grep_file_path(line).unwrap()
+        );
+
+        let (end_of_path, start_of_line) = parse_grep_item(line).unwrap();
+        assert_eq!(
+            "/home/xlc/.vim/plugged/vim-clap/crates/pattern/src/lib.rs",
+            &line[..end_of_path]
+        );
+        assert_eq!(
+            r#"/// // crates/printer/src/lib.rs:199:26:        let query = "srlisrlisrsr"#,
+            &line[start_of_line..]
+        );
+    }
+
+    #[test]
+    fn test_dumb_jump_line() {
+        let line = "[variable]crates/maple_cli/src/stdio_server/session/context.rs:36:8:        let cwd = msg.get_cwd().into();";
+        let info = extract_jump_line_info(line).unwrap();
+        assert_eq!(
+            info,
+            (
+                "variable",
+                "crates/maple_cli/src/stdio_server/session/context.rs",
+                36,
+                8
+            )
+        );
+        let line = "[variable]crates/maple_cli/src/stdio_server/session/providers/dumb_jump.rs:9:8:        let cwd = msg.get_cwd();";
+        assert_eq!(
+            extract_jump_line_info(line).unwrap(),
+            (
+                "variable",
+                "crates/maple_cli/src/stdio_server/session/providers/dumb_jump.rs",
+                9,
+                8
+            )
+        );
+    }
+
+    #[test]
+    fn test_tag_name_only() {
+        let line = "<Backspace>:60       [map]           inoremap <silent> <buffer> <Backspace> <C-R>=clap#handler#bs_action()<CR>  ftplugin/clap_input.vim";
+        let mat = TAG_RE.find(line);
+        assert_eq!(mat.unwrap().as_str(), "<Backspace>:60");
+    }
+
+    #[test]
+    fn test_proj_tags_regexp() {
+        let line = r#"<C-D>:42                       [map@ftplugin/clap_input.vim]  inoremap <silent> <buffer> <expr> <C-D> col('.')>strlen(getline('.'))?"\\<Lt>C-D>":"\\<Lt>Del"#;
+        assert_eq!(
+            (42, "ftplugin/clap_input.vim"),
+            extract_proj_tags(line).unwrap()
+        );
+
+        let line = r#"sorted_dict:18                 [variable@crates/icon/update_constants.py] sorted_dict = {k: disordered[k] for k in sorted(disordered)}"#;
+        assert_eq!(
+            (18, "crates/icon/update_constants.py"),
+            extra

@@ -8,4 +8,15 @@ publish = false
 homepage = "https://github.com/liuchengxu/vim-clap"
 
 [dependencies]
-serde = { versio
+serde = { version = "1.0",  features = ["derive"] }
+serde_json = "1.0"
+unicode-width = "0.1.4"
+
+icon = { path = "../icon" }
+types = { path = "../types" }
+utils = { path = "../utils" }
+
+[target.'cfg(not(windows))'.dev-dependencies]
+rayon = "1.5"
+termion = "1.5.1"
+filter = { path = "../filter" }

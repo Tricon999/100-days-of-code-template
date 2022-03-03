@@ -212,4 +212,60 @@ mod tests {
         // raw_line, query, highlighted, container_width, display_line
         let test_cases = vec![
             (
-                "directories/are/nested/a/lot/then/the/
+                "directories/are/nested/a/lot/then/the/matched/items/will/be/invisible/file.scss",
+                "files",
+                "files",
+                50usize,
+                "..en/the/matched/items/will/be/invisible/file.scss",
+            ),
+            (
+                "directories/are/nested/a/lot/then/the/matched/items/will/be/invisible/another-file.scss",
+                "files",
+                "files",
+                50usize,
+                "..atched/items/will/be/invisible/another-file.scss",
+            ),
+            (
+                "directories/are/nested/a/lot/then/the/matched/items/will/be/invisible/file.js",
+                "files",
+                "files",
+                50usize,
+                "..then/the/matched/items/will/be/invisible/file.js",
+            ),
+            (
+                "directories/are/nested/a/lot/then/the/matched/items/will/be/invisible/another-file.js",
+                "files",
+                "files",
+                50usize,
+                "../matched/items/will/be/invisible/another-file.js",
+            ),
+            (
+                "/Users/xuliucheng/Library/Caches/Homebrew/universal-ctags--git/Units/afl-fuzz.r/github-issue-625-r.d/input.r",
+                "srcggithub",
+                "srcg",
+                50usize,
+                "..s/Homebrew/universal-ctags--git/Units/afl-fuzz..",
+            ),
+            (
+                "        // Wait until propagation delay period after block we plan to mine on",
+                "bmine",
+                "bmine",
+                58usize,
+                ".. propagation delay period after block we plan to mine on",
+            ),
+            (
+                "fuzzy-filter/target/debug/deps/librustversion-b273394e6c9c64f6.dylib.dSYM/Contents/Resources/DWARF/librustversion-b273394e6c9c64f6.dylib",
+                "srlisresource",
+                "srlis",
+                50usize,
+                "..stversion-b273394e6c9c64f6.dylib.dSYM/Contents.."
+            ),
+            (
+                "target/debug/deps/libstructopt_derive-3921fbf02d8d2ffe.dylib.dSYM/Contents/Resources/DWARF/libstructopt_derive-3921fbf02d8d2ffe.dylib",
+                "srlisresource",
+                "srli",
+                50usize,
+                "..structopt_derive-3921fbf02d8d2ffe.dylib.dSYM/C..",
+            ),
+            (
+                "fuzzy-filter/target/debug/deps/librustversio

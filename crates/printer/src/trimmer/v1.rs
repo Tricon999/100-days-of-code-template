@@ -268,4 +268,52 @@ mod tests {
                 "..structopt_derive-3921fbf02d8d2ffe.dylib.dSYM/C..",
             ),
             (
-                "fuzzy-filter/target/debug/deps/librustversio
+                "fuzzy-filter/target/debug/deps/librustversion-15764ff2535f190d.dylib.dSYM/Contents/Resources/DWARF/librustversion-15764ff2535f190d.dylib",
+                "srlisresource",
+                "srlis",
+                50usize,
+                "..stversion-15764ff2535f190d.dylib.dSYM/Contents..",
+            ),
+            (
+                "crates/readtags/sys/libreadtags/autom4te.cache/requests",
+                "srlisrs",
+                "lisrs",
+                42usize,
+                "../sys/libreadtags/autom4te.cache/requests",
+            ),
+            (
+                "crates/maple_cli/src/dumb_analyzer/find_usages/default_types.rs",
+                "srlisrs",
+                "lisrs",
+                42usize,
+                "..mb_analyzer/find_usages/default_types.rs",
+            ),
+            (
+                r#"crates/printer/src/lib.rs:312:4:" crates/fuzzy_filter/target/debug/deps/librustversion-15764ff2535f190d.dylib.dSYM/Contents/Resources/DWARF/librustversion-15764ff2535f190d.dylib"#,
+                "ctagslisr",
+                "ctagsli",
+                80usize,
+                "..crates/fuzzy_filter/target/debug/deps/librustversion-15764ff2535f190d.dylib..."
+            ),
+        ];
+
+        for (text, query, highlighted, container_width, display_line) in test_cases {
+            let ranked = filter_single_line(text.to_string(), query);
+
+            let MatchedItem { indices, .. } = ranked[0].clone();
+
+            let (display_line_got, indices_post) = trim_text(text, &indices, container_width, 4)
+                .unwrap_or((text.into(), indices.clone()));
+
+            let truncated_text_got = display_line_got.clone();
+
+            let highlighted_got = indices_post
+                .iter()
+                .filter_map(|i| truncated_text_got.chars().nth(*i))
+                .collect::<String>();
+
+            assert_eq!(display_line, display_line_got);
+            assert_eq!(highlighted, highlighted_got);
+        }
+    }
+}

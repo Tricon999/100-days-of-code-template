@@ -127,4 +127,99 @@ pub trait ClapItem: AsAny + std::fmt::Debug + Send + Sync {
 
 // Impl [`ClapItem`] for raw String.
 //
-// In order to filter/calculate bonus for a substring instead of the whole S
+// In order to filter/calculate bonus for a substring instead of the whole String, a
+// custom wrapper is necessary to extract the text for matching/calculating bonus/diplaying, etc.
+impl<T: AsRef<str> + std::fmt::Debug + Send + Sync + 'static> ClapItem for T {
+    fn raw_text(&self) -> &str {
+        self.as_ref()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct GrepItem {
+    raw: String,
+    end_of_path: usize,
+    start_of_line: usize,
+}
+
+impl GrepItem {
+    pub fn try_new(raw: String) -> Option<Self> {
+        let (end_of_path, start_of_line) = pattern::parse_grep_item(&raw)?;
+        Some(Self {
+            raw,
+            end_of_path,
+            start_of_line,
+        })
+    }
+
+    fn file_path(&self) -> &str {
+        &self.raw[..self.end_of_path]
+    }
+
+    fn line(&self) -> &str {
+        &self.raw[self.start_of_line..]
+    }
+}
+
+impl ClapItem for GrepItem {
+    fn raw_text(&self) -> &str {
+        &self.raw
+    }
+
+    fn fuzzy_text(&self, _match_scope: MatchScope) -> Option<FuzzyText> {
+        Some(FuzzyText::new(self.line(), self.start_of_line))
+    }
+
+    fn bonus_text(&self) -> &str {
+        self.line()
+    }
+
+    fn icon(&self, _icon: Icon) -> Option<icon::IconType> {
+        Some(icon::file_icon(self.file_path()))
+    }
+}
+
+/// Item of `:Clap files`, but only matches the file name instead of the entire file path.
+#[derive(Debug, Clone)]
+pub struct FileNameItem {
+    raw: String,
+    file_name_offset: usize,
+}
+
+impl FileNameItem {
+    pub fn try_new(raw: String) -> Option<Self> {
+        let (_file_name, file_name_offset) = pattern::extract_file_name(&raw)?;
+        Some(Self {
+            raw,
+            file_name_offset,
+        })
+    }
+
+    fn file_name(&self) -> &str {
+        &self.raw[self.file_name_offset..]
+    }
+}
+
+impl ClapItem for FileNameItem {
+    fn raw_text(&self) -> &str {
+        &self.raw
+    }
+
+    fn fuzzy_text(&self, _match_scope: MatchScope) -> Option<FuzzyText> {
+        Some(FuzzyText::new(self.file_name(), self.file_name_offset))
+    }
+
+    fn icon(&self, _icon: Icon) -> Option<icon::IconType> {
+        Some(icon::file_icon(&self.raw))
+    }
+}
+
+/// This type represents multiple kinds of concrete Clap item from providers like grep,
+/// proj_tags, files, etc.
+#[derive(Debug, Clone)]
+pub struct SourceItem {
+    /// Raw line from the initial input stream.
+    pub raw: String,
+    /// Text for performing the fuzzy match algorithm.
+    ///
+    /// Could be initialized on creating a new [

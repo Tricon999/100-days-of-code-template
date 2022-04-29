@@ -222,4 +222,92 @@ pub struct SourceItem {
     pub raw: String,
     /// Text for performing the fuzzy match algorithm.
     ///
-    /// Could be initialized on creating a new [
+    /// Could be initialized on creating a new [`SourceItem`].
+    pub fuzzy_text: Option<(String, usize)>,
+    /// Text for displaying.
+    pub output_text: Option<String>,
+}
+
+impl From<String> for SourceItem {
+    fn from(raw: String) -> Self {
+        Self {
+            raw,
+            fuzzy_text: None,
+            output_text: None,
+        }
+    }
+}
+
+impl SourceItem {
+    /// Constructs a new instance of [`SourceItem`].
+    pub fn new(
+        raw: String,
+        fuzzy_text: Option<(String, usize)>,
+        output_text: Option<String>,
+    ) -> Self {
+        Self {
+            raw,
+            fuzzy_text,
+            output_text,
+        }
+    }
+
+    pub fn output_text_or_raw(&self) -> &str {
+        match self.output_text {
+            Some(ref text) => text,
+            None => &self.raw,
+        }
+    }
+
+    pub fn fuzzy_text_or_exact_using_match_scope(
+        &self,
+        match_scope: MatchScope,
+    ) -> Option<FuzzyText> {
+        match self.fuzzy_text {
+            Some((ref text, offset)) => Some(FuzzyText::new(text, offset)),
+            None => extract_fuzzy_text(self.raw.as_str(), match_scope),
+        }
+    }
+}
+
+impl ClapItem for SourceItem {
+    fn raw_text(&self) -> &str {
+        &self.raw
+    }
+
+    fn fuzzy_text(&self, match_scope: MatchScope) -> Option<FuzzyText> {
+        self.fuzzy_text_or_exact_using_match_scope(match_scope)
+    }
+
+    fn output_text(&self) -> Cow<'_, str> {
+        self.output_text_or_raw().into()
+    }
+}
+
+pub fn extract_fuzzy_text(full: &str, match_scope: MatchScope) -> Option<FuzzyText> {
+    match match_scope {
+        MatchScope::Full => Some(FuzzyText::new(full, 0)),
+        MatchScope::TagName => extract_tag_name(full).map(|s| FuzzyText::new(s, 0)),
+        MatchScope::FileName => {
+            extract_file_name(full).map(|(s, offset)| FuzzyText::new(s, offset))
+        }
+        MatchScope::GrepLine => {
+            extract_grep_pattern(full).map(|(s, offset)| FuzzyText::new(s, offset))
+        }
+    }
+}
+
+/// This struct represents the filtered result of [`SourceItem`].
+#[derive(Debug, Clone)]
+pub struct MatchedItem {
+    /// Tuple of (matched line text, filtering score, indices of matched elements)
+    pub item: Arc<dyn ClapItem>,
+    /// Item rank.
+    pub rank: Rank,
+    /// Indices of matched elements.
+    ///
+    /// The indices may be truncated when truncating the text.
+    pub indices: Vec<usize>,
+    /// Text for showing the final filtered result.
+    ///
+    /// Usually in a trunca

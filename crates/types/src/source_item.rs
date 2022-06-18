@@ -310,4 +310,74 @@ pub struct MatchedItem {
     pub indices: Vec<usize>,
     /// Text for showing the final filtered result.
     ///
-    /// Usually in a trunca
+    /// Usually in a truncated form for fitting into the display window.
+    pub display_text: Option<String>,
+    /// Untruncated display text.
+    pub output_text: Option<String>,
+}
+
+impl PartialEq for MatchedItem {
+    fn eq(&self, other: &Self) -> bool {
+        self.rank.eq(&other.rank)
+    }
+}
+
+impl Eq for MatchedItem {}
+
+impl Ord for MatchedItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.rank.cmp(&other.rank)
+    }
+}
+
+impl PartialOrd for MatchedItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.rank.partial_cmp(&other.rank)
+    }
+}
+
+impl From<Arc<dyn ClapItem>> for MatchedItem {
+    fn from(item: Arc<dyn ClapItem>) -> Self {
+        Self {
+            item,
+            rank: Rank::default(),
+            indices: Vec::new(),
+            display_text: None,
+            output_text: None,
+        }
+    }
+}
+
+impl MatchedItem {
+    pub fn new(item: Arc<dyn ClapItem>, rank: Rank, indices: Vec<usize>) -> Self {
+        Self {
+            item,
+            rank,
+            indices,
+            display_text: None,
+            output_text: None,
+        }
+    }
+
+    /// Maybe truncated display text.
+    pub fn display_text(&self) -> Cow<str> {
+        if let Some(ref text) = self.display_text {
+            text.into()
+        } else {
+            self.item.output_text()
+        }
+    }
+
+    pub fn output_text(&self) -> Cow<str> {
+        if let Some(ref text) = self.output_text {
+            text.into()
+        } else {
+            self.item.output_text()
+        }
+    }
+
+    /// Returns the match indices shifted by `offset`.
+    pub fn shifted_indices(&self, offset: usize) -> Vec<usize> {
+        self.indices.iter().map(|x| x + offset).collect()
+    }
+}

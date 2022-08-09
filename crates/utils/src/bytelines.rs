@@ -84,4 +84,9 @@ impl DoubleEndedIterator for ByteLines<'_> {
 
         Some(match simdutf8::basic::from_utf8(line) {
             Ok(s) => s.into(),
-            Err(_) => S
+            Err(_) => String::from_utf8_lossy(line),
+        })
+    }
+}
+
+impl FusedIterator for ByteLines<'_> {}

@@ -88,4 +88,35 @@ pub fn read_lines_from<P: AsRef<Path>>(
     number: usize,
 ) -> Result<impl Iterator<Item = String>> {
     let file = File::open(path)?;
-    Ok(BufR
+    Ok(BufReader::new(file)
+        .lines()
+        .skip(from)
+        .filter_map(Result::ok)
+        .take(number))
+}
+
+/// Works for utf-8 lines only.
+#[allow(unused)]
+fn read_preview_lines_utf8<P: AsRef<Path>>(
+    path: P,
+    target_line: usize,
+    size: usize,
+) -> Result<(impl Iterator<Item = String>, usize)> {
+    let (start, end, highlight_lnum) = if target_line > size {
+        (target_line - size, target_line + size, size)
+    } else {
+        (0, 2 * size, target_line)
+    };
+    Ok((read_lines_from(path, start, end - start)?, highlight_lnum))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_lines() {
+        let f: &[u8] = b"some text\nwith\nfour\nlines\n";
+        assert_eq!(count_lines(f).unwrap(), 4);
+    }
+}

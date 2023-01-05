@@ -65,4 +65,9 @@ pub fn as_std_command<P: AsRef<Path>>(shell_cmd: impl AsRef<OsStr>, dir: Option<
 /// Executes the `shell_cmd` and returns the output.
 pub fn execute_at<S, P>(shell_cmd: S, dir: Option<P>) -> std::io::Result<Output>
 where
-    S: As
+    S: AsRef<OsStr>,
+    P: AsRef<Path>,
+{
+    let mut cmd = as_std_command(shell_cmd, dir);
+    cmd.output()
+}

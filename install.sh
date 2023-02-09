@@ -67,4 +67,14 @@ do_download() {
 }
 
 if [ ! -f "bin/$APP" ]; then
-  echo "bin/$APP is empty, try downloading $APP $remote_latest_tag fro
+  echo "bin/$APP is empty, try downloading $APP $remote_latest_tag from GitHub directly..."
+  do_download
+else
+  if [ $(local_tag) == remote_latest_tag ]; then
+    echo "Local binary "bin/$APP" is already the latest version"
+    exit 0
+  else
+    echo "Try downloading latest version of $APP $remote_latest_tag from GitHub..."
+    do_download
+  fi
+fi

@@ -91,4 +91,43 @@ nnoremap <silent> <buffer> <CR>      :<c-u>call clap#handler#sink()<CR>
 nnoremap <silent> <buffer> <Down> :<c-u>call clap#navigation#linewise_scroll('down')<CR>
 nnoremap <silent> <buffer> <Up>   :<c-u>call clap#navigation#linewise_scroll('up')<CR>
 
-nnoremap <silent> <buffer> <ScrollWheelDown> :<c-u>call clap#navigati
+nnoremap <silent> <buffer> <ScrollWheelDown> :<c-u>call clap#navigation#linewise_scroll('down')<CR>
+nnoremap <silent> <buffer> <ScrollWheelUp>   :<c-u>call clap#navigation#linewise_scroll('up')<CR>
+
+nnoremap <silent> <buffer> <LeftMouse>       :<c-u>call clap#handler#tab_action()<CR>
+nnoremap <silent> <buffer> <RightMouse>      :<c-u>call clap#handler#tab_action()<CR>
+
+nnoremap <silent> <buffer> <PageDown> :<c-u>call clap#navigation#scroll('down')<CR>
+nnoremap <silent> <buffer> <PageUp>   :<c-u>call clap#navigation#scroll('up')<CR>
+
+nnoremap <silent> <buffer> <Tab> :<c-u>call clap#handler#tab_action()<CR>
+nnoremap <silent> <buffer> <A-u> :<c-u>call clap#handler#back_action()<CR>
+
+nnoremap <silent> <buffer> <C-d> :<c-u>call clap#navigation#scroll('down')<CR>
+nnoremap <silent> <buffer> <C-u> :<c-u>call clap#navigation#scroll('up')<CR>
+
+nnoremap <silent> <buffer> gg :<c-u>call clap#navigation#scroll('top')<CR>
+nnoremap <silent> <buffer> G  :<c-u>call clap#navigation#scroll('bottom')<CR>
+
+nnoremap <silent> <buffer> j :<c-u>call clap#navigation#linewise_scroll('down')<CR>
+nnoremap <silent> <buffer> k :<c-u>call clap#navigation#linewise_scroll('up')<CR>
+
+nnoremap <silent> <buffer> <S-Tab> :<c-u>call clap#action#invoke()<CR>
+
+function! s:Notify(key) abort
+  call clap#client#notify(a:key)
+  return ''
+endfunction
+
+nnoremap <silent> <buffer> <C-n> :<c-u>call clap#client#notify('ctrl-n')<CR>
+nnoremap <silent> <buffer> <C-p> :<c-u>call clap#client#notify('ctrl-p')<CR>
+
+inoremap <silent> <buffer> <C-n> <C-R>=<SID>Notify('ctrl-n')<CR>
+inoremap <silent> <buffer> <C-p> <C-R>=<SID>Notify('ctrl-p')<CR>
+
+" Preview scroll
+nnoremap <silent> <buffer> <S-Up>   :<c-u>call clap#client#notify('shift-up')<CR>
+nnoremap <silent> <buffer> <S-Down> :<c-u>call clap#client#notify('shift-down')<CR>
+
+inoremap <silent> <buffer> <S-Up>   <C-R>=<SID>Notify('shift-up')<CR>
+inoremap <silent> <buffer> <S-Down> <C-R>=<SID>Notify('shift-down')<CR>

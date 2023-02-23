@@ -79,3 +79,45 @@ local function apply_fzy(query, candidates, enable_icon, match_scope)
         -- Enable case_sensitive
         if fzy.has_match(query, c, case_sensitive) then
             positions, score = fzy.positions(query, c)
+            if score ~= fzy.get_score_min() then
+                adjusted_positions = {}
+                for i, v in ipairs(positions) do
+                    adjusted_positions[i] = v + offset
+                end
+                table.insert(matches, {text = raw_c, score = score, indices = adjusted_positions})
+            end
+        end
+    end
+
+    return matches
+end
+
+local function compare(a, b)
+    return a[2]["score"] > b[2]["score"]
+end
+
+function fzy_filter.do_fuzzy_match(query, candidates, enable_icon, match_scope)
+    -- https://cesarbs.org/blog/2009/10/23/why-luas-0-zero-as-a-true-value-makes-sense/
+    if enable_icon == 0 then
+      enable_icon = false
+    end
+
+    scored = apply_fzy(query, candidates, enable_icon, match_scope)
+
+    ranked = {}
+    for k, v in pairs(scored) do
+        table.insert(ranked, {k, v})
+    end
+    table.sort(ranked, compare)
+
+    indices = {}
+    filtered = {}
+    for k, v in pairs(ranked) do
+        table.insert(indices, v[2].indices)
+        table.insert(filtered, v[2].text)
+    end
+
+    return indices, filtered
+end
+
+return fzy_filter

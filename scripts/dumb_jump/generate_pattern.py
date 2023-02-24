@@ -55,4 +55,31 @@ rules['cpp'] = rules['c++']
 rules.pop('c++', None)
 
 with open('rg_pcre2_regex.json', 'w') as f:
-    json.dump(rules, f, in
+    json.dump(rules, f, indent=4)
+
+print(rules.keys())
+
+comments_map = {
+    '*': ['//'],
+    'lua': ['--'],
+    'erl': ['%'],
+    'hrl': ['%'],
+    'tex': ['%'],
+    'r': ['//'],
+    'go': ['//'],
+    'rs': ['//', '//!', '///'],
+    'cpp': ['//'],
+    'javascript': ['//'],
+    'typescript': ['//'],
+    'php': ['//', '#'],
+    'el': [';'],
+    'clj': [';'],
+    'exs': ['#'],
+    'perl': ['#'],
+    'py': ['#'],
+    'nim': ['#'],
+    'rb': ['#'],
+}
+
+with open('comments_map.json', 'w') as f:
+    json.dump(comments_map, f, indent=4)

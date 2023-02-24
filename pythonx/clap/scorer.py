@@ -226,4 +226,4 @@ def substr_scorer(niddle, haystack):
             return float("-inf"), None
         total_score += score
         positions.extend(indices)
-    retur
+    return total_score, sorted(positions)

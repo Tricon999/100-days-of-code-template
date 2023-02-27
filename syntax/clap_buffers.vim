@@ -5,4 +5,9 @@ syntax match ClapBuffersLnum   /line \d\+/ contained
 syntax match ClapBuffersExtra   /\[\(+\|#\)\]/ contained
 syntax match ClapBuffersFname   /line.*$/ contains=ClapBuffersLnum,ClapBuffersExtra
 
-hi default link ClapBuffersNumbe
+hi default link ClapBuffersNumberBracket Number
+hi default link ClapBuffersNumber        Function
+hi default link ClapBuffersFsize         Type
+hi default link ClapBuffersLnum          CursorLineLineNr
+hi default link ClapBuffersExtra         SpecialChar
+hi default link ClapBuffersFname         String

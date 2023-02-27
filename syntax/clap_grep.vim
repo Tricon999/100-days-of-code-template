@@ -17,4 +17,4 @@ hi default link ClapFpathTruncated   Keyword
 hi default link ClapLinNr            LineNr
 hi default link ClapColumn           Comment
 hi default link ClapLinNrColumn      Type
-hi default link ClapIconUnknown      Charac
+hi default link ClapIconUnknown      Character

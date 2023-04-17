@@ -14,7 +14,7 @@ name = "fuzzymatch_rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.15"
+pyo3 = "0.18"
 
 printer = { path = "../../../crates/printer" }
 matcher = { path = "../../../crates/matcher" }
